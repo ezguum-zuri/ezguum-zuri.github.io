@@ -1,0 +1,372 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Menú</title>
+<style>
+:root{--bg:#f4f6f1;--sf:#fff;--ink:#1b2620;--mu:#62706a;--ln:#e0e5de;--ac:#1f6b55;--a2:#3e9a7b;--as:#e3f0ea;--ai:#fff;--bad:#b03a2e;--tb:91%;--tf:24%;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121816;--sf:#1b2320;--ink:#e8eee9;--mu:#9aa8a1;--ln:#2b3531;--ac:#5fbf9e;--a2:#3b8f75;--as:#1d3a30;--ai:#0e1411;--bad:#ec7b6e;--tb:22%;--tf:80%;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121816;--sf:#1b2320;--ink:#e8eee9;--mu:#9aa8a1;--ln:#2b3531;--ac:#5fbf9e;--a2:#3b8f75;--as:#1d3a30;--ai:#0e1411;--bad:#ec7b6e;--tb:22%;--tf:80%;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--ac);z-index:10}
+.w{max-width:680px;margin:0 auto;padding:0 14px 90px}
+.hero{display:flex;align-items:center;justify-content:space-between;gap:8px;background:radial-gradient(circle at 82% 25%,rgba(255,255,255,.28),transparent 48%),linear-gradient(135deg,var(--ac),var(--a2));color:var(--ai);margin:0 -14px;padding:20px 18px 16px;border-radius:0 0 26px 26px}
+.hero svg{width:150px;flex:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.18))}.hero .k{text-transform:uppercase;letter-spacing:.16em;font-size:11px;font-weight:700;opacity:.85}
+.hero h1{margin:2px 0 4px;font:700 46px/1 Georgia,"Times New Roman",serif;letter-spacing:-.02em}.hero p{margin:2px 0 0;opacity:.85;font-size:13px}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--ln)}
+nav button{border:0;background:none;color:var(--mu);font:600 12px inherit;padding:7px 2px;border-radius:10px;display:grid;gap:1px;justify-items:center}
+nav button span{font-size:18px}nav button[aria-selected=true]{background:var(--as);color:var(--ac)}
+button{font:inherit;cursor:pointer}
+section{display:grid;gap:12px;padding-top:14px}
+h2{font:700 20px Georgia,serif;margin:0}h3{margin:0;font:700 17px Georgia,serif;text-transform:capitalize}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.mu{color:var(--mu);font-size:13px}
+.b{border:1px solid var(--ln);background:var(--sf);color:var(--ink);border-radius:10px;padding:8px 13px;font-weight:600}
+.b.p{background:var(--ac);border-color:var(--ac);color:var(--ai)}.b.s{padding:5px 9px;font-size:13px}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:16px;padding:12px 14px;display:grid;gap:8px}
+.card.today{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac)}
+.dh{display:flex;justify-content:space-between;align-items:baseline}.dh b{font:700 16px Georgia,serif}
+select,input,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:8px 10px;width:100%;min-width:0}
+.sl{display:grid;grid-template-columns:72px 1fr auto;align-items:center;gap:8px}
+.sl span{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu);font-weight:700}
+.meta{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mu);margin:-2px 0 2px 80px}
+.tg{border-radius:20px;padding:2px 9px;font-size:12px;font-weight:600;background:hsl(var(--h) 55% var(--tb));color:hsl(var(--h) 60% var(--tf));white-space:nowrap}
+.t-l{--h:35}.t-p{--h:205}.t-a{--h:22}.t-h{--h:48}.t-r{--h:0}.t-v{--h:140}.t-c{--h:270}.t-f{--h:335}
+.sum{display:flex;gap:6px;flex-wrap:wrap}
+.note{background:var(--as);border-radius:12px;padding:10px 12px;font-size:13.5px}
+.cal{display:grid;grid-template-columns:36px repeat(7,1fr);gap:4px;text-align:center}
+.cal .hd{font-size:11px;color:var(--mu);font-weight:700;padding:2px}
+.cell{border:1px solid var(--ln);background:var(--sf);color:var(--ink);border-radius:10px;aspect-ratio:1;display:grid;align-content:center;justify-items:center;gap:3px;padding:0;font-weight:600}
+.cell.td{border-color:var(--ac);color:var(--ac)}.cell.sel{background:var(--ac);color:var(--ai);border-color:var(--ac)}
+.dots{display:flex;gap:3px;height:6px}.dots i{width:6px;height:6px;border-radius:50%;background:var(--a2)}.dots i.d{background:#d9729b}.dots i.n{background:#e0a54a}
+.rc summary{cursor:pointer;display:flex;gap:8px;align-items:center;flex-wrap:wrap;list-style:none}.rc summary b{flex:1 1 140px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--ln);background:var(--sf);color:var(--mu);border-radius:20px;padding:5px 12px;font-weight:600;font-size:13px}.chip[aria-pressed=true]{background:var(--ac);border-color:var(--ac);color:var(--ai)}
+.it{display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--ln)}
+.it input{width:20px;height:20px;accent-color:var(--ac);padding:0}.it.d span{text-decoration:line-through;color:var(--mu)}
+.mc{margin:0 0 4px 80px;display:grid;gap:5px}.mc .chips{gap:5px}.mc .tg{font-size:11px;padding:1px 7px}.b3{display:flex;gap:2px;height:6px;border-radius:3px;overflow:hidden}.b3 i{background:hsl(var(--h) 65% 55%)}.mc-c{--h:38}.mc-p{--h:205}.mc-g{--h:8}
+.wkb{border:1px solid var(--ln);background:var(--sf);color:var(--mu);border-radius:10px;font-size:11px;font-weight:700;padding:0}.wkb.on{background:var(--as);color:var(--ac);border-color:var(--ac)}.cell.inw{background:var(--as)}
+.wr{display:grid;grid-template-columns:52px 1fr;gap:8px;text-align:left;border:0;border-bottom:1px solid var(--ln);background:none;color:var(--ink);padding:9px 0;font-size:13.5px}.wr.on b{color:var(--ac)}.wr span{display:grid;gap:2px}
+.hb{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:50px;height:50px;border-radius:50%;border:0;background:var(--ac);color:var(--ai);font:700 26px Georgia,serif;box-shadow:0 6px 16px rgba(0,0,0,.28);z-index:20}
+[hidden]{display:none!important}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--sf);color:var(--ink);width:100%;max-width:680px;max-height:88vh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));display:grid;gap:14px}
+.hs{display:grid;grid-template-columns:36px 1fr;gap:10px}.hs i{font-style:normal;font-size:24px;text-align:center}.hs b{display:block}.hs span{color:var(--mu);font-size:14px}
+.lg{display:flex;gap:6px;margin-bottom:8px}.lg button{border:1px solid rgba(255,255,255,.6);background:transparent;color:var(--ai);border-radius:20px;padding:3px 11px;font-size:12px;font-weight:700}.lg button[aria-pressed=true]{background:var(--ai);color:var(--ac)}
+.rb{background:var(--bg);border:1px solid var(--ln);border-radius:12px;padding:10px 12px;display:grid;gap:6px;margin-top:4px;font-size:14px}
+.st{margin:0;padding-left:20px;display:grid;gap:4px;font-size:14px}.ad{display:grid;grid-template-columns:1fr auto;gap:8px}
+textarea{resize:none;line-height:1.5}
+.fm{display:grid;gap:8px}.fm .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+</style></head><body><div class="w">
+<div class="hero"><div><div class="lg"><button data-lg="es">Castellano</button><button data-lg="eu">Euskara</button></div><div class="k">Planificador saludable</div><h1>Menú</h1><p id="hd"></p></div><svg viewBox="0 0 170 120" aria-hidden="true"><ellipse cx="85" cy="110" rx="62" ry="6" fill="#000" opacity=".14"/><g transform="translate(138 28) rotate(18)"><ellipse rx="14" ry="19" fill="#4f8a3b"/><ellipse rx="11" ry="16" fill="#c8e08a"/><circle cy="4" r="6" fill="#8b5a2b"/></g><g transform="translate(26 30)"><circle r="15" fill="#f39a1f"/><circle r="12" fill="#ffc15a"/><path d="M0-12V12M-12 0H12M-8.5-8.5L8.5 8.5M8.5-8.5L-8.5 8.5" stroke="#f39a1f" stroke-width="1.5"/></g><path d="M22 60h126a63 46 0 0 1-126 0z" fill="#fff"/><ellipse cx="50" cy="56" rx="17" ry="11" fill="#6dbb6a"/><ellipse cx="72" cy="50" rx="16" ry="12" fill="#4ea85a"/><circle cx="96" cy="52" r="12" fill="#e8553f"/><circle cx="93" cy="48" r="3" fill="#f58b79"/><ellipse cx="119" cy="54" rx="14" ry="10" fill="#f6e7b4"/><circle cx="119" cy="53" r="6" fill="#f2a31b"/><ellipse cx="136" cy="59" rx="9" ry="6" fill="#9bd16b"/><path d="M22 60h126" stroke="#cfe3da" stroke-width="3"/><circle cx="62" cy="63" r="4" fill="#e8553f"/><circle cx="108" cy="64" r="3.5" fill="#e8553f"/><path d="M152 70c10-12 18-6 14 4-4 8-12 8-14-4z" fill="#6dbb6a"/></svg></div>
+<nav id="nav"><button data-t="sem"><span>🍽️</span>Semana</button><button data-t="cal"><span>📅</span>Calendario</button><button data-t="rec"><span>📖</span>Recetas</button><button data-t="lis"><span>🛒</span>Compra</button></nav>
+<main id="v"></main></div>
+<button class="hb" id="hb" aria-label="Cómo se usa">?</button>
+<div class="ov" id="hp" hidden><div class="sheet" role="dialog" aria-label="Cómo se usa"><h2>Cómo se usa</h2>
+<div class="hs"><i>🍽️</i><div><b>Semana</b><span>Pulsa «✨ Generar menú saludable» (o «Generar menú Carbohidratos») y se rellenan los desayunos, comidas y cenas. Puedes cambiar cualquier plato con el desplegable. El botón «Receta» te explica cómo prepararlo.</span></div></div>
+<div class="hs"><i>📅</i><div><b>Calendario</b><span>Pulsa una «S» con su número (S45, S46…) para elegir una semana entera. Ahí puedes generar o vaciar su menú y ver los siete días. Pulsa un día para editarlo. Con las flechas cambias de mes.</span></div></div>
+<div class="hs"><i>📖</i><div><b>Recetas</b><span>Todas las recetas con ingredientes, pasos y el porcentaje de carbohidratos, proteínas y grasas. Filtra por desayunos, comidas o cenas. Abajo puedes añadir las tuyas.</span></div></div>
+<div class="hs"><i>🛒</i><div><b>Compra</b><span>Salen los ingredientes que necesita el menú de la semana, ya marcados. Desmarca los que ya tienes en casa. Puedes añadir más escribiéndolos arriba o desde «Otros ingredientes».</span></div></div>
+<div class="hs"><i>📲</i><div><b>Lista para el iPhone</b><span>Cuando la lista esté lista, pulsa «Generar lista para iPhone» y luego «Compartir» (elige Notas o Recordatorios) o «Copiar».</span></div></div>
+<div class="hs"><i>💡</i><div><b>Importante</b><span>Generar un menú sustituye el de esa semana. Tus datos se guardan solo en este navegador. Los porcentajes son orientativos.</span></div></div>
+<button class="b p" id="hx">Entendido</button></div></div>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const TAGS={l:["Legumbre","🫘"],p:["Pescado","🐟"],a:["Ave","🍗"],h:["Huevo","🥚"],r:["Carne roja","🥩"],v:["Verdura","🥦"],c:["Cereal","🌾"],f:["Desayuno","🍎"]};
+const R0=`1|Lentejas con verduras|c|l|40|lentejas,zanahoria,puerro,pimiento,tomate|60/26/14
+2|Garbanzos con espinacas|c|l|35|garbanzos,espinacas,ajo,pimentón|52/20/28
+3|Alubias blancas con verduras|c|l|45|alubias blancas,calabacín,cebolla,tomate|58/24/18
+4|Merluza al horno con patata|c|p|30|merluza,patata,limón,ajo,perejil|45/32/23
+5|Salmón con brócoli y arroz integral|c|p|25|salmón,brócoli,arroz integral,limón|38/27/35
+6|Bacalao con tomate|c|p|35|bacalao,tomate,pimiento,cebolla|25/48/27
+7|Pollo al limón con arroz|c|a|35|pechuga de pollo,limón,arroz integral,ajo|45/38/17
+8|Pavo con verduras salteadas|c|a|25|pavo,calabacín,zanahoria,cebolla|22/53/25
+9|Ternera con ensalada|c|r|25|ternera,lechuga,tomate,aceitunas|8/47/45
+10|Pasta integral con verduras|c|c|25|pasta integral,calabacín,tomate,albahaca|68/15/17
+11|Arroz con verduras|c|c|35|arroz,pimiento,judías verdes,tomate|72/10/18
+12|Pisto con huevo|c|h|30|calabacín,pimiento,tomate,cebolla,huevos|25/23/52
+13|Sardinas a la plancha con ensalada|c|p|20|sardinas,lechuga,tomate,limón|8/42/50
+14|Tortilla francesa con ensalada|n|h|15|huevos,lechuga,tomate|10/33/57
+15|Crema de calabacín|n|v|25|calabacín,cebolla,patata,queso fresco|48/22/30
+16|Ensalada de atún y huevo|n|p|15|atún,huevos,lechuga,tomate,aceitunas|9/47/44
+17|Revuelto de champiñones|n|h|15|huevos,champiñones,ajo|8/33/59
+18|Sopa de verduras|n|v|30|puerro,zanahoria,apio,fideos|68/12/20
+19|Pescadilla a la plancha|n|p|20|pescadilla,limón,judías verdes|18/62/20
+20|Pollo a la plancha con verduras|n|a|25|pechuga de pollo,pimiento,calabacín|16/60/24
+21|Hummus con crudités|n|l|15|garbanzos,tahini,zanahoria,pepino|35/16/49
+22|Crema de zanahoria|n|v|25|zanahoria,cebolla,naranja,queso fresco|58/18/24
+23|Tostadas de aguacate y huevo|n|h|10|pan integral,aguacate,huevos|33/18/49
+24|Ensalada templada de garbanzos|n|l|15|garbanzos,pimiento,cebolla,pepino|53/18/29
+25|Merluza en papillote|n|p|25|merluza,calabacín,zanahoria,limón|20/57/23
+26|Pavo a la plancha con ensalada|n|a|20|pavo,lechuga,tomate|12/63/25
+27|Tostada de tomate y aceite, fruta y café con leche|d|f|10|pan integral,tomate,aceite de oliva,fruta de temporada,café,leche|60/14/26
+28|Tostada de aguacate, fruta y café con leche|d|f|10|pan integral,aguacate,fruta de temporada,café,leche|50/12/38
+29|Tostada de queso fresco y pavo, fruta y café con leche|d|f|10|pan integral,queso fresco,pavo cocido,fruta de temporada,café,leche|56/27/17
+30|Tostada con huevo a la plancha, fruta y café con leche|d|f|12|pan integral,huevos,fruta de temporada,café,leche|50/22/28
+31|Tostada de crema de cacahuete y plátano con café con leche|d|f|8|pan integral,crema de cacahuete,plátano,café,leche|52/14/34
+32|Tostada de requesón y miel, fruta y café con leche|d|f|8|pan integral,requesón,miel,fruta de temporada,café,leche|63/21/16
+33|Tostada de tomate y atún, fruta y café con leche|d|f|10|pan integral,tomate,atún,fruta de temporada,café,leche|57/28/15
+34|Tostada de queso fresco y mermelada, fruta y café con leche|d|f|8|pan integral,queso fresco,mermelada,fruta de temporada,café,leche|66/19/15`.split("\n").map(s=>{const[id,n,k,t,m,i,x]=s.split("|");return{id,n,k,t,m:+m,i:i.split(","),x:x&&x.split("/").map(Number)}});
+const ST={};`1|Sofríe puerro, zanahoria y pimiento 5 min|Añade el tomate y las lentejas y cubre con agua|Cuece a fuego suave 30 min hasta que estén tiernas|Sazona y sirve
+2|Sofríe el ajo con un poco de pimentón|Añade los garbanzos cocidos y medio vaso de agua|Incorpora las espinacas y cuece 5 min|Rectifica de sal y sirve caliente
+3|Pocha la cebolla y el calabacín en dados|Añade el tomate y las alubias cocidas|Cuece 15 min a fuego suave|Sirve templado
+4|Corta la patata en rodajas finas y hornea 15 min a 200 °C|Coloca encima la merluza con ajo, perejil y limón|Hornea 12-15 min más|Sirve con un chorrito de aceite
+5|Cuece el arroz integral según el paquete|Cuece el brócoli al vapor unos 6 min|Dora el salmón a la plancha 3-4 min por lado|Sirve con limón
+6|Desala el bacalao si es salado|Sofríe cebolla y pimiento y añade el tomate|Pon el bacalao y cuece tapado 10 min|Sirve con la salsa por encima
+7|Marina el pollo con limón y ajo 15 min|Cuece el arroz integral|Dora el pollo a la plancha 5 min por lado|Sirve sobre el arroz con zumo de limón
+8|Corta las verduras en tiras|Saltea cebolla y zanahoria 5 min|Añade el pavo en dados y el calabacín|Cocina 8 min y sazona
+9|Sazona la ternera|Plancha 3-4 min por lado a fuego fuerte|Deja reposar 2 min|Sirve con lechuga, tomate y aceitunas
+10|Cuece la pasta integral según el paquete|Saltea el calabacín en dados|Añade el tomate y cuece 5 min|Mezcla con la pasta y la albahaca
+11|Sofríe el pimiento y las judías verdes|Añade el tomate y el arroz y rehoga 1 min|Cubre con el doble de agua o caldo|Cuece 18 min y deja reposar 5
+12|Sofríe cebolla y pimiento 8 min|Añade calabacín y tomate y cuece 15 min|Haz huecos y casca los huevos encima|Tapa 3-4 min hasta que cuajen
+13|Seca las sardinas y sazona|Plancha 2-3 min por lado|Prepara la ensalada de lechuga y tomate|Sirve con limón
+14|Bate los huevos con una pizca de sal|Cuaja en sartén antiadherente|Dobla y sirve con ensalada
+15|Pocha la cebolla|Añade calabacín y patata en dados y cubre con agua|Cuece 15 min|Tritura con el queso fresco
+16|Cuece los huevos 10 min y pélalos|Trocea lechuga y tomate|Añade el atún y las aceitunas|Aliña con aceite y sal
+17|Lamina los champiñones y dóralos con ajo|Añade los huevos batidos|Remueve a fuego bajo 2 min|Sirve enseguida
+18|Corta puerro, zanahoria y apio en dados|Cuece 20 min en agua|Añade los fideos 5 min|Sazona y sirve
+19|Cuece las judías verdes 8 min|Plancha la pescadilla 3 min por lado|Sirve con las judías y limón
+20|Plancha el pollo 5 min por lado|Saltea pimiento y calabacín en tiras|Sirve junto y sazona
+21|Tritura los garbanzos cocidos con tahini y un chorrito de agua y aceite|Corta zanahoria y pepino en bastones|Sirve para mojar
+22|Pocha la cebolla|Añade la zanahoria en rodajas y el zumo de una naranja|Cubre con agua y cuece 20 min|Tritura con el queso fresco
+23|Tuesta el pan|Machaca el aguacate con sal|Haz los huevos a la plancha|Monta todo sobre las tostadas
+24|Escurre los garbanzos cocidos|Pica pimiento, cebolla y pepino|Mezcla y aliña con aceite y vinagre
+25|Corta calabacín y zanahoria finos|Colócalos en papel de horno con la merluza y limón|Cierra el paquete|Hornea 15 min a 190 °C
+26|Sazona el pavo|Plancha 4 min por lado|Prepara ensalada de lechuga y tomate|Sirve junto
+27|Tuesta el pan integral|Ralla el tomate y extiéndelo con un chorrito de aceite|Prepara el café con leche|Acompaña con una pieza de fruta de temporada
+28|Tuesta el pan|Machaca el aguacate con sal y extiéndelo|Prepara el café con leche|Añade una pieza de fruta
+29|Tuesta el pan|Unta el queso fresco y coloca el pavo|Prepara el café con leche|Añade una pieza de fruta
+30|Tuesta el pan|Haz el huevo a la plancha con muy poco aceite|Prepara el café con leche|Añade una pieza de fruta
+31|Tuesta el pan|Extiende una capa fina de crema de cacahuete|Añade el plátano en rodajas|Acompaña con el café con leche
+32|Tuesta el pan|Unta el requesón y añade un hilo de miel|Prepara el café con leche|Añade una pieza de fruta
+33|Tuesta el pan|Pon rodajas de tomate y el atún escurrido|Prepara el café con leche|Añade una pieza de fruta
+34|Tuesta el pan|Unta el queso fresco y una cucharadita de mermelada|Prepara el café con leche|Añade una pieza de fruta`.split("\n").forEach(l=>{const i=l.indexOf("|");ST[l.slice(0,i)]=l.slice(i+1)});
+const NE={1:"Dilista barazkiekin",2:"Garbantzuak espinakekin",3:"Babarrun zuriak barazkiekin",4:"Legatza labean patatarekin",5:"Izokina brokolia eta arroz integralarekin",6:"Bakailaoa tomatearekin",7:"Oilaskoa limoiarekin eta arrozarekin",8:"Indioilarra barazki salteatuekin",9:"Txahala entsaladarekin",10:"Pasta integrala barazkiekin",11:"Arroza barazkiekin",12:"Piperrada arrautzarekin",13:"Sardinak plantxan entsaladarekin",14:"Arrautza-tortilla frantsesa entsaladarekin",15:"Kalabazin-krema",16:"Atun eta arrautza entsalada",17:"Txanpinoi-nahastea",18:"Barazki-zopa",19:"Legatz txikia plantxan",20:"Oilaskoa plantxan barazkiekin",21:"Hummusa barazki gordinekin",22:"Azenario-krema",23:"Aguakate eta arrautza tostadak",24:"Garbantzu entsalada epela",25:"Legatza papillotean",26:"Indioilarra plantxan entsaladarekin",27:"Tomate eta olio-tostada, fruta eta kafe esnea",28:"Aguakate-tostada, fruta eta kafe esnea",29:"Gazta fresko eta indioilar tostada, fruta eta kafe esnea",30:"Plantxako arrautza tostada, fruta eta kafe esnea",31:"Kakahuete-krema eta platano tostada, kafe esnearekin",32:"Gaztanbera eta eztia tostada, fruta eta kafe esnea",33:"Tomate eta atun tostada, fruta eta kafe esnea",34:"Gazta fresko eta marmelada tostada, fruta eta kafe esnea"};
+const SE={};`1|Prakatu porrua, azenarioa eta piperra 5 min|Gehitu tomatea eta dilistak eta estali urarekin|Su epelean egosi 30 min, samurtu arte|Gazitu eta zerbitzatu
+2|Prakatu baratxuria piperrautsarekin|Gehitu egositako garbantzuak eta ur-edalontzi erdia|Sartu espinakak eta egosi 5 min|Gatza zuzendu eta bero zerbitzatu
+3|Pochatu tipula eta kalabazina kuboetan|Gehitu tomatea eta egositako babarrunak|Egosi 15 min su epelean|Epel zerbitzatu
+4|Ebaki patata xerra finetan eta labean egin 15 min 200 °C-tan|Jarri gainean legatza, baratxuria, perrexila eta limoia|Egin labean 12-15 min gehiago|Zerbitzatu olio-xorta batekin
+5|Egosi arroz integrala paketeko jarraibideen arabera|Egosi brokolia lurrunetan 6 bat min|Dorea izokina plantxan 3-4 min alde bakoitzetik|Zerbitzatu limoiarekin
+6|Gazigabetu bakailaoa gazia bada|Prakatu tipula eta piperra eta gehitu tomatea|Jarri bakailaoa eta egosi estalita 10 min|Zerbitzatu saltsa gainean
+7|Marinatu oilaskoa limoiarekin eta baratxuriarekin 15 min|Egosi arroz integrala|Dorea oilaskoa plantxan 5 min alde bakoitzetik|Zerbitzatu arrozaren gainean limoi-zukuarekin
+8|Ebaki barazkiak zerrenda luzetan|Salteatu tipula eta azenarioa 5 min|Gehitu indioilarra kuboetan eta kalabazina|Egin 8 min eta gazitu
+9|Gazitu txahala|Egin plantxan 3-4 min alde bakoitzetik su handian|Utzi atseden hartzen 2 min|Zerbitzatu letxuga, tomate eta olibekin
+10|Egosi pasta integrala paketeko jarraibideen arabera|Salteatu kalabazina kuboetan|Gehitu tomatea eta egosi 5 min|Nahastu pastarekin eta albahakarekin
+11|Prakatu piperra eta baia berdeak|Gehitu tomatea eta arroza eta nahastu 1 min|Estali ur edo salda halako bikoitzarekin|Egosi 18 min eta utzi atseden hartzen 5 min
+12|Prakatu tipula eta piperra 8 min|Gehitu kalabazina eta tomatea eta egosi 15 min|Egin zuloak eta apurtu arrautzak gainean|Estali 3-4 min, koagulatu arte
+13|Lehortu sardinak eta gazitu|Egin plantxan 2-3 min alde bakoitzetik|Prestatu letxuga eta tomate entsalada|Zerbitzatu limoiarekin
+14|Irabiatu arrautzak gatz-pixka batekin|Koagulatu zartagin itsaskaitzean|Tolestu eta zerbitzatu entsaladarekin
+15|Pochatu tipula|Gehitu kalabazina eta patata kuboetan eta estali urarekin|Egosi 15 min|Birrindu gazta freskoarekin
+16|Egosi arrautzak 10 min eta zuritu|Txikitu letxuga eta tomatea|Gehitu atuna eta olibak|Ongarritu olioarekin eta gatzarekin
+17|Xerratu txanpinoiak eta dorea baratxuriarekin|Gehitu irabiatutako arrautzak|Mugitu su apalean 2 min|Zerbitzatu berehala
+18|Ebaki porrua, azenarioa eta apioa kuboetan|Egosi 20 min uretan|Gehitu fideoak 5 min|Gazitu eta zerbitzatu
+19|Egosi baia berdeak 8 min|Egin legatz txikia plantxan 3 min alde bakoitzetik|Zerbitzatu baiekin eta limoiarekin
+20|Egin oilaskoa plantxan 5 min alde bakoitzetik|Salteatu piperra eta kalabazina zerrendatan|Zerbitzatu elkarrekin eta gazitu
+21|Birrindu egositako garbantzuak tahinirekin eta ur eta olio-xorta batekin|Ebaki azenarioa eta pepinoa makilatan|Zerbitzatu busti ahal izateko
+22|Pochatu tipula|Gehitu azenarioa xerretan eta laranja baten zukua|Estali urarekin eta egosi 20 min|Birrindu gazta freskoarekin
+23|Txigortu ogia|Xehatu aguakatea gatzarekin|Egin arrautzak plantxan|Muntatu dena tostaden gainean
+24|Xukatu egositako garbantzuak|Txikitu piperra, tipula eta pepinoa|Nahastu eta ongarritu olioarekin eta ozpinarekin
+25|Ebaki kalabazina eta azenarioa mehe|Jarri labe-paperean legatzarekin eta limoiarekin|Itxi paketea|Egin labean 15 min 190 °C-tan
+26|Gazitu indioilarra|Egin plantxan 4 min alde bakoitzetik|Prestatu letxuga eta tomate entsalada|Zerbitzatu elkarrekin
+27|Txigortu ogi integrala|Birrindu tomatea eta zabaldu olio-xorta batekin|Prestatu kafe esnea|Lagundu denboraldiko fruta batekin
+28|Txigortu ogia|Xehatu aguakatea gatzarekin eta zabaldu|Prestatu kafe esnea|Gehitu fruta bat
+29|Txigortu ogia|Zabaldu gazta freskoa eta jarri indioilarra|Prestatu kafe esnea|Gehitu fruta bat
+30|Txigortu ogia|Egin arrautza plantxan olio oso gutxirekin|Prestatu kafe esnea|Gehitu fruta bat
+31|Txigortu ogia|Zabaldu kakahuete-krema geruza mehe bat|Gehitu platanoa xerretan|Lagundu kafe esnearekin
+32|Txigortu ogia|Zabaldu gaztanbera eta gehitu eztia|Prestatu kafe esnea|Gehitu fruta bat
+33|Txigortu ogia|Jarri tomate-xerrak eta atun xukatua|Prestatu kafe esnea|Gehitu fruta bat
+34|Txigortu ogia|Zabaldu gazta freskoa eta koilarakada txiki bat marmelada|Prestatu kafe esnea|Gehitu fruta bat`.split("\n").forEach(l=>{const i=l.indexOf("|");SE[l.slice(0,i)]=l.slice(i+1)});
+const ING=Object.fromEntries("lentejas:dilistak,zanahoria:azenarioa,puerro:porrua,pimiento:piperra,tomate:tomatea,garbanzos:garbantzuak,espinacas:espinakak,ajo:baratxuria,pimentón:piperrautsa,alubias blancas:babarrun zuriak,calabacín:kalabazina,cebolla:tipula,merluza:legatza,patata:patata,limón:limoia,perejil:perrexila,salmón:izokina,brócoli:brokolia,arroz integral:arroz integrala,bacalao:bakailaoa,pechuga de pollo:oilasko-bularra,pavo:indioilarra,ternera:txahala,lechuga:letxuga,aceitunas:olibak,pasta integral:pasta integrala,albahaca:albahaka,arroz:arroza,judías verdes:baia berdeak,huevos:arrautzak,sardinas:sardinak,queso fresco:gazta freskoa,atún:atuna,champiñones:txanpinoiak,apio:apioa,fideos:fideoak,pescadilla:legatz txikia,tahini:tahini,pepino:pepinoa,naranja:laranja,pan integral:ogi integrala,aguacate:aguakatea,aceite de oliva:oliba-olioa,fruta de temporada:denboraldiko fruta,café:kafea,leche:esnea,pavo cocido:indioilar egosia,crema de cacahuete:kakahuete-krema,plátano:platanoa,requesón:gaztanbera,miel:eztia,mermelada:marmelada".split(",").map(x=>x.split(":")));
+const rn=r=>LG==="eu"&&NE[r.id]||r.n,ig=x=>LG==="eu"&&ING[x]||x;
+let D={menu:{},rec:[],chk:{}};try{D={...D,...JSON.parse(localStorage.getItem("casa2")||"{}")}}catch(_){}
+D.ext=D.ext||{};D.have=D.have||{};D.mode=D.mode||{};const save=()=>{try{localStorage.setItem("casa2",JSON.stringify(D))}catch(_){}};
+const allR=()=>R0.concat(D.rec),byId=id=>allR().find(r=>r.id===id);
+const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const mon=d=>{const x=new Date(d);x.setHours(12);return addD(x,-((x.getDay()+6)%7))};
+const fmt=d=>d.toLocaleDateString(LOC(),{day:"numeric",month:"short"});
+let KN={d:"Desayuno",c:"Comida",n:"Cena"};
+let DN=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+let tab="sem",wk=mon(new Date()),mo=new Date(new Date().getFullYear(),new Date().getMonth(),1,12),sel=iso(new Date()),F="",today=iso(new Date());
+let LG="es",showL=false,oxOpen=false,OP=new Set();const shuf=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
+const pm=v=>{const a=v.split("/").map(x=>parseFloat(x)),t=a.reduce((p,q)=>p+q,0);return a.length===3&&a.every(x=>x>=0)&&t>0?a.map(x=>Math.round(x*100/t)):undefined};
+const mac=r=>{if(!r.x)return"";const L=[["c","Carb."],["p","Prot."],["g","Grasa"]];return`<div class="mc"><div class="b3">${L.map((l,j)=>`<i class="mc-${l[0]}" style="width:${r.x[j]}%"></i>`).join("")}</div><div class="chips">${L.map((l,j)=>`<span class="tg mc-${l[0]}">${l[1]} ${r.x[j]}%</span>`).join("")}</div></div>`};
+const tg=t=>`<span class="tg t-${t}">${TAGS[t][1]} ${TAGS[t][0]}</span>`;
+function slot(ds,k){const cur=(D.menu[ds]||{})[k],r=cur&&byId(cur),key=ds+"|"+k,o=OP.has(key);
+  return `<div><div class="sl"><span>${KN[k]}</span><select data-s="${key}" aria-label="${KN[k]}"><option value="">—</option>${allR().filter(x=>x.k===k).map(x=>`<option value="${x.id}"${x.id===cur?" selected":""}>${esc(rn(x))}</option>`).join("")}</select>${r?`<button class="b s" data-rc="${key}" aria-expanded="${o}">${o?"Ocultar":"Receta"}</button>`:""}</div>${r?`<div class="meta">${tg(r.t)}<span>⏱ ${r.m} min</span></div>${mac(r)}`:""}${r&&o?`<div class="rb"><div class="mu">${LG==="eu"?"Osagaiak":"Ingredientes"}: ${r.i.map(x=>esc(ig(x))).join(", ")}</div>${steps(r)||'<div class="mu">Esta receta no tiene pasos.</div>'}</div>`:""}</div>`}
+function weekIds(){const o=[];for(let i=0;i<7;i++){const m=D.menu[iso(addD(wk,i))]||{};["d","c","n"].forEach(k=>{const r=m[k]&&byId(m[k]);if(r)o.push(r)})}return o}
+function vSem(){
+  const rs=weekIds(),c={},xs=rs.filter(r=>r.x),avg=xs.length?Math.round(xs.reduce((p,r)=>p+r.x[0],0)/xs.length):0;rs.filter(r=>r.k!=="d").forEach(r=>c[r.t]=(c[r.t]||0)+1);
+  const hint=!rs.length?"Aún no hay menú esta semana. Pulsa «Generar menú saludable» y lo preparo con pescado, legumbres, verdura y poca carne roja.":[(c.p||0)<2&&"Te falta pescado (objetivo: 2 o más).",(c.l||0)<2&&"Te faltan legumbres (objetivo: 2 o más).",(c.r||0)>1&&"Hay más de una carne roja: conviene limitarla."].filter(Boolean).join(" ")||"Equilibrio semanal correcto: pescado, legumbres y poca carne roja.";
+  let h=`<section><div class="row"><button class="b" data-w="-7">←</button><h2>${fmt(wk)} – ${fmt(addD(wk,6))}</h2><button class="b" data-w="7">→</button></div>
+  <div class="row"><button class="b p" id="gen">✨ Generar menú saludable</button><button class="b p" id="gen2">Generar menú Carbohidratos</button><button class="b" id="clr">Vaciar</button></div>
+  <div class="note">${D.mode[iso(wk)]==="carb"&&rs.length?`Menú con más carga de carbohidratos: de media ${avg}% de las calorías vienen de carbohidratos.`:hint}</div>${rs.length?`<div class="sum">${Object.keys(c).map(t=>`${tg(t)}<b>${c[t]}</b>`).join(" ")}</div>`:""}`;
+  for(let i=0;i<7;i++){const d=addD(wk,i),ds=iso(d);h+=`<div class="card${ds===today?" today":""}"><div class="dh"><b>${DN[i]}</b><span class="mu">${fmt(d)}</span></div>${slot(ds,"d")}${slot(ds,"c")}${slot(ds,"n")}</div>`}
+  return h+'<p class="mu">Macros: porcentaje de las calorías que aporta cada nutriente (carbohidratos, proteínas y grasas). Son valores orientativos para una ración media.</p></section>'}
+const wrow=i=>{const d=addD(wk,i),ds=iso(d),m=D.menu[ds]||{},L=k=>{const r=m[k]&&byId(m[k]);return`<div><span class="mu">${KN[k]}:</span> ${r?esc(rn(r)):"—"}</div>`};
+  return`<button class="wr${ds===sel?" on":""}" data-day="${ds}"><b>${DS[i]} ${d.getDate()}</b><span>${L("d")}${L("c")}${L("n")}</span></button>${ds===sel?`<div class="rb" id="wsel">${slot(ds,"d")}${slot(ds,"c")}${slot(ds,"n")}</div>`:""}`};
+function sw(){if(tab==="cal"){const e=$("#wm");if(e)e.scrollIntoView({block:"start"})}}
+const wn=d=>{const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),n=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-n);return Math.ceil(((t-new Date(Date.UTC(t.getUTCFullYear(),0,1)))/864e5+1)/7)};
+function vCal(){
+  const y=mo.getFullYear(),m=mo.getMonth(),lead=(new Date(y,m,1,12).getDay()+6)%7,n=new Date(y,m+1,0).getDate(),cs=[];
+  for(let i=0;i<lead;i++)cs.push(null);for(let d=1;d<=n;d++)cs.push(new Date(y,m,d,12));while(cs.length%7)cs.push(null);
+  const cw=iso(wk);let g="<div></div>"+(LG==="eu"?"AAAOOLI":"LMXJVSD").split("").map(x=>`<div class="hd">${x}</div>`).join("");
+  for(let r=0;r<cs.length;r+=7){const row=cs.slice(r,r+7),mw=mon(row.find(Boolean)),inw=iso(mw)===cw;
+    g+=`<button class="wkb${inw?" on":""}" data-wk="${iso(mw)}" aria-label="Seleccionar semana">${LG==="eu"?"A":"S"}${wn(mw)}</button>`;
+    row.forEach(d=>{if(!d){g+="<i></i>";return}const ds=iso(d),mm=D.menu[ds]||{};
+      g+=`<button class="cell${ds===today?" td":""}${ds===sel?" sel":""}${inw&&ds!==sel?" inw":""}" data-day="${ds}">${d.getDate()}<span class="dots">${mm.d?"<i class=d></i>":""}${mm.c?"<i></i>":""}${mm.n?"<i class=n></i>":""}</span></button>`})}
+  const sd=new Date(sel+"T12:00"),wm=[0,1,2,3,4,5,6].map(wrow).join("");
+  return `<section><div class="row"><button class="b" data-m="-1">←</button><h2 style="text-transform:capitalize">${mo.toLocaleDateString(LOC(),{month:"long",year:"numeric"})}</h2><button class="b" data-m="1">→</button></div>
+  <div class="cal">${g}</div><p class="mu">Pulsa S + número para seleccionar una semana entera, o un día para ver solo ese día. ● rosa = desayuno · ● verde = comida · ● naranja = cena</p>
+  <div class="card"><h3 style="text-transform:none">Semana ${fmt(wk)} – ${fmt(addD(wk,6))}</h3><div class="row"><button class="b p" id="gen">✨ Generar menú saludable</button><button class="b p" id="gen2">Generar menú Carbohidratos</button></div><div class="row"><button class="b" id="vw">Abrir en la pestaña Semana</button><button class="b" id="clr">Vaciar semana</button></div></div>
+  <div class="card" id="wm"><h3 style="text-transform:none">Menú de la semana</h3>${wm}<p class="mu">Pulsa un día y se abre justo debajo para cambiar sus platos o ver la receta. Púlsalo otra vez para cerrarlo.</p></div>
+  ${sel&&(sel<iso(wk)||sel>iso(addD(wk,6)))?`<div class="card"><h3>${sd.toLocaleDateString(LOC(),{weekday:"long",day:"numeric",month:"long"})}</h3>${slot(sel,"d")}${slot(sel,"c")}${slot(sel,"n")}</div>`:""}</section>`}
+const steps=r=>{const a=(r.s||(LG==="eu"&&SE[r.id])||ST[r.id]||"").split("|").map(x=>x.trim()).filter(Boolean);return a.length?`<b>Paso a paso</b><ol class="st">${a.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>`:""};
+function vRec(){
+  const l=allR().filter(r=>!F||r.k===F);
+  return `<section><h2>Recetas</h2><div class="chips">${[["","Todas"],["d","Desayunos"],["c","Comidas"],["n","Cenas"]].map(([k,t])=>`<button class="chip" data-f="${k}" aria-pressed="${F===k}">${t}</button>`).join("")}</div>
+  ${l.map(r=>`<details class="card rc"><summary><b>${esc(rn(r))}</b>${tg(r.t)}<span class="mu">${KN[r.k]} · ${r.m} min</span></summary><div class="mu">${LG==="eu"?"Osagaiak":"Ingredientes"}: ${r.i.map(x=>esc(ig(x))).join(", ")}</div>${mac(r)}${steps(r)}${r.id[0]==="u"?`<div><button class="b s" data-dr="${r.id}">Borrar receta</button></div>`:""}</details>`).join("")}
+  <details class="card"><summary><b>＋ Añadir receta propia</b></summary><div class="fm"><input id="rn" placeholder="Nombre"><div class="two"><select id="rk"><option value="d">Desayuno</option><option value="c">Comida</option><option value="n">Cena</option></select><select id="rt">${Object.entries(TAGS).map(([k,v])=>`<option value="${k}">${v[1]} ${v[0]}</option>`).join("")}</select></div><input id="ri" placeholder="Ingredientes separados por comas"><input id="rm" type="number" inputmode="numeric" placeholder="Minutos"><input id="rs" placeholder="Pasos separados por | (opcional)"><input id="rx" placeholder="Macros % carbohidratos/proteínas/grasas, ej. 50/25/25 (opcional)"><button class="b p" id="ar">Guardar receta</button></div></details></section>`}
+function shop(){const w=iso(wk),c={};weekIds().forEach(r=>r.i.forEach(x=>c[x]=(c[x]||0)+1));
+  const ex=D.ext[w]||[],hv=D.have[w]||{},names=[...new Set([...Object.keys(c),...ex])].sort((a,b)=>a.localeCompare(b,"es"));return{c,ex,hv,names,buy:names.filter(x=>!hv[x])}}
+const cap=x=>{x=ig(x);return x.charAt(0).toUpperCase()+x.slice(1)};
+const listText=()=>{const{c,buy}=shop();return buy.map(x=>cap(x)+(c[x]>1?" ×"+c[x]:"")).join("\n")};
+function vLis(){const{c,ex,hv,names,buy}=shop();
+  const others=[...new Set(allR().flatMap(r=>r.i))].filter(x=>!names.includes(x)).sort((a,b)=>a.localeCompare(b,"es"));
+  return `<section><div class="row"><button class="b" data-w="-7">←</button><h2>Compra ${fmt(wk)} – ${fmt(addD(wk,6))}</h2><button class="b" data-w="7">→</button></div>
+  <div class="ad"><input id="ne" placeholder="Añadir ingrediente o producto…" autocomplete="off"><button class="b p" id="ae">Añadir</button></div>
+  <p class="mu">Solo están marcados los ingredientes que necesitan los menús de esta semana. Desmarca lo que ya tengas en casa; el resto de ingredientes están abajo, sin marcar. <b>${buy.length}</b> por comprar.</p>
+  <div>${names.map(x=>`<div class="it${hv[x]?" d":""}"><input type="checkbox" data-hv="${esc(x)}"${hv[x]?"":" checked"}><span>${esc(cap(x))}</span>${ex.includes(x)&&!c[x]?`<button class="b s" data-de="${esc(x)}" aria-label="Quitar">×</button>`:hv[x]?'<span class="mu">en casa</span>':`<span class="mu">${c[x]>1?"×"+c[x]:""}</span>`}</div>`).join("")||'<div class="note">Genera el menú de esta semana o añade productos a mano y aparecerán aquí.</div>'}</div>
+  <details class="card" id="ox"${oxOpen?" open":""}><summary><b>Otros ingredientes</b> <span class="mu">(${others.length}) · marca los que quieras añadir</span></summary><div>${others.map(x=>`<div class="it"><input type="checkbox" data-ox="${esc(x)}"><span>${esc(cap(x))}</span><span></span></div>`).join("")}</div></details>
+  ${buy.length?'<button class="b p" id="mk">📲 Generar lista para iPhone</button>':""}
+  ${showL&&buy.length?`<div class="card"><h3>Lista de la compra</h3><textarea id="lt" readonly rows="${Math.min(14,buy.length+1)}">${esc(listText())}</textarea><div class="row">${navigator.share?'<button class="b p" id="sh">Compartir…</button>':""}<button class="b" id="cp">Copiar</button><button class="b" id="dl">Descargar .txt</button></div><p class="mu" id="cm">En el iPhone: pulsa «Compartir» y elige Notas o Recordatorios, o copia la lista y pégala en Recordatorios (cada línea será un recordatorio).</p></div>`:""}</section>`}
+function draw(){const y=scrollY;
+  document.querySelectorAll("#nav button").forEach(b=>b.setAttribute("aria-selected",b.dataset.t===tab));
+  $("#hd").textContent=new Date().toLocaleDateString(LOC(),{weekday:"long",day:"numeric",month:"long"});
+  $("#v").innerHTML={sem:vSem,cal:vCal,rec:vRec,lis:vLis}[tab]();tx($("#v"));scrollTo(0,y)}
+function gen(mode){
+  const pick=(k,q)=>{const pool=allR().filter(r=>r.k===k),out=[];
+    q.forEach(([t,c])=>shuf(pool.filter(r=>r.t===t&&!out.includes(r))).slice(0,c).forEach(r=>out.push(r)));
+    shuf(pool.filter(r=>!out.includes(r))).forEach(r=>{if(out.length<7&&!(r.t==="r"&&out.some(o=>o.t==="r")))out.push(r)});return shuf(out)};
+  const carb=k=>shuf(allR().filter(r=>r.k===k).map(r=>[(r.x?r.x[0]:30)+Math.random()*12,r]).sort((p,q)=>q[0]-p[0]).slice(0,7).map(x=>x[1])),cb=mode==="carb";
+  const d=cb?carb("d"):pick("d",[]),c=cb?carb("c"):pick("c",[["l",2],["p",2],["a",1]]),n=cb?carb("n"):pick("n",[["p",1],["h",1],["a",1],["v",1]]);
+  for(let i=0;i<7;i++)D.menu[iso(addD(wk,i))]={d:d[i]&&d[i].id,c:c[i]&&c[i].id,n:n[i]&&n[i].id};D.mode[iso(wk)]=cb?"carb":"sano";delete D.have[iso(wk)];save();draw()}
+document.addEventListener("click",e=>{const t=e.target.closest("button");if(!t)return;
+  if(t.dataset.lg){setLang(t.dataset.lg);return}
+  if(t.dataset.rc){OP.has(t.dataset.rc)?OP.delete(t.dataset.rc):OP.add(t.dataset.rc);draw();return}
+  if(t.dataset.t){tab=t.dataset.t;draw();return}
+  if(t.dataset.w){wk=addD(wk,+t.dataset.w);showL=false;draw();return}
+  if(t.dataset.m){mo=new Date(mo.getFullYear(),mo.getMonth()+ +t.dataset.m,1,12);draw();return}
+  if(t.dataset.day){const ds=t.dataset.day,row=t.classList.contains("wr");if(row&&ds===sel){sel="";draw();return}sel=ds;wk=mon(new Date(ds+"T12:00"));draw();const e=$("#wsel");if(e)e.scrollIntoView({block:row?"nearest":"center"});return}
+  if(t.dataset.f!==undefined){F=t.dataset.f;draw();return}
+  if(t.id==="gen"){gen("sano");sw();return}
+  if(t.id==="gen2"){gen("carb");sw();return}
+  if(t.id==="vw"){tab="sem";draw();return}
+  if(t.dataset.wk){wk=new Date(t.dataset.wk+"T12:00");sel=t.dataset.wk;draw();return}
+  if(t.id==="clr"){for(let i=0;i<7;i++)delete D.menu[iso(addD(wk,i))];delete D.mode[iso(wk)];save();draw();return}
+  if(t.dataset.dr){D.rec=D.rec.filter(r=>r.id!==t.dataset.dr);save();draw();return}
+  if(t.id==="mk"){showL=!showL;draw();const l=$("#lt");if(l)l.scrollIntoView({block:"center"});return}
+  if(t.id==="sh"){navigator.share({title:(LG==="eu"?"Erosketak ":"Compra ")+fmt(wk)+" – "+fmt(addD(wk,6)),text:listText()}).catch(()=>{});return}
+  if(t.id==="cp"){const ok=()=>{$("#cm").textContent="Copiado ✓ Ya puedes pegarlo en Recordatorios o Notas.";tx($("#cm"))};
+    if(navigator.clipboard)navigator.clipboard.writeText(listText()).then(ok,()=>{$("#lt").select();document.execCommand("copy");ok()});else{$("#lt").select();document.execCommand("copy");ok()}return}
+  if(t.id==="dl"){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([listText()],{type:"text/plain"}));a.download="compra-"+iso(wk)+".txt";document.body.appendChild(a);a.click();a.remove();return}
+  if(t.id==="ae"){const v=$("#ne").value.trim().toLowerCase(),w=iso(wk);if(!v)return;D.ext[w]=D.ext[w]||[];if(!D.ext[w].includes(v))D.ext[w].push(v);save();draw();$("#ne").focus();return}
+  if(t.dataset.de){const w=iso(wk);D.ext[w]=(D.ext[w]||[]).filter(x=>x!==t.dataset.de);if(D.have[w])delete D.have[w][t.dataset.de];save();draw();return}
+  if(t.id==="ar"){const n=$("#rn").value.trim(),i=$("#ri").value.split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);if(!n||!i.length)return;
+    D.rec.push({id:"u"+Date.now().toString(36),n,k:$("#rk").value,t:$("#rt").value,m:+$("#rm").value||20,i,s:$("#rs").value.trim(),x:pm($("#rx").value)});save();draw()}});
+document.addEventListener("change",e=>{const t=e.target;
+  if(t.dataset.s){const[ds,k]=t.dataset.s.split("|");D.menu[ds]=D.menu[ds]||{};D.menu[ds][k]=t.value||undefined;save();draw()}
+  if(t.dataset.ox){const w=iso(wk);D.ext[w]=D.ext[w]||[];if(!D.ext[w].includes(t.dataset.ox))D.ext[w].push(t.dataset.ox);save();draw();return}
+  if(t.dataset.hv){const w=iso(wk);(D.have[w]=D.have[w]||{})[t.dataset.hv]=!t.checked;save();draw()}});
+document.addEventListener("toggle",e=>{if(e.target.id==="ox")oxOpen=e.target.open},true);
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="ne")$("#ae").click()});
+const hp=$("#hp"),hOpen=o=>{hp.hidden=!o;if(!o)try{localStorage.setItem("casa2-help","1")}catch(_){}};
+$("#hb").onclick=()=>hOpen(true);$("#hx").onclick=()=>hOpen(false);hp.onclick=e=>{if(e.target===hp)hOpen(false)};
+document.addEventListener("keydown",e=>{if(e.key==="Escape")hOpen(false)});
+try{if(!localStorage.getItem("casa2-help"))hp.hidden=false}catch(_){}
+/* ---------- idiomas ---------- */
+const LOC=()=>LG==="eu"?"eu-ES":"es-ES";
+const DNS=DN.slice(),DNE=["Astelehena","Asteartea","Asteazkena","Osteguna","Ostirala","Larunbata","Igandea"],DSS=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"],DSE=["al.","ar.","az.","og.","ol.","lr.","ig."];
+let DS=DSS;
+const TN={es:{l:"Legumbre",p:"Pescado",a:"Ave",h:"Huevo",r:"Carne roja",v:"Verdura",c:"Cereal",f:"Desayuno"},eu:{l:"Lekaleak",p:"Arraina",a:"Hegaztia",h:"Arrautza",r:"Okela gorria",v:"Barazkia",c:"Zerealak",f:"Gosaria"}};
+const EX=Object.fromEntries(`Planificador saludable => Plangintza osasuntsua
+Menú => Menua
+Semana => Astea
+Calendario => Egutegia
+Recetas => Errezetak
+Compra => Erosketa
+Cómo se usa => Nola erabili
+Entendido => Ulertu dut
+Lista para el iPhone => iPhonerako zerrenda
+Importante => Garrantzitsua
+✨ Generar menú saludable => ✨ Sortu menu osasuntsua
+Generar menú Carbohidratos => Sortu karbohidrato-menua
+Vaciar => Garbitu
+Vaciar semana => Astea garbitu
+Receta => Errezeta
+Ocultar => Ezkutatu
+Paso a paso => Pausoz pauso
+Esta receta no tiene pasos. => Errezeta honek ez du urratsik.
+Abrir en la pestaña Semana => Ireki Astea fitxan
+Menú de la semana => Asteko menua
+Todas => Guztiak
+Desayunos => Gosariak
+Comidas => Bazkariak
+Cenas => Afariak
+Desayuno => Gosaria
+Comida => Bazkaria
+Cena => Afaria
+Borrar receta => Errezeta ezabatu
+＋ Añadir receta propia => ＋ Neure errezeta gehitu
+Nombre => Izena
+Ingredientes separados por comas => Osagaiak komaz bereizita
+Minutos => Minutuak
+Pasos separados por | (opcional) => Urratsak | bidez bereizita (aukerakoa)
+Macros % carbohidratos/proteínas/grasas, ej. 50/25/25 (opcional) => Makroak % karbohidratoak/proteinak/koipeak, adib. 50/25/25 (aukerakoa)
+Guardar receta => Errezeta gorde
+Añadir ingrediente o producto… => Osagaia edo produktua gehitu…
+Añadir => Gehitu
+Otros ingredientes => Beste osagai batzuk
+por comprar. => erosteko.
+en casa => etxean
+Quitar => Kendu
+Seleccionar semana => Aukeratu astea
+📲 Generar lista para iPhone => 📲 Sortu iPhonerako zerrenda
+Lista de la compra => Erosketa-zerrenda
+Compartir… => Partekatu…
+Copiar => Kopiatu
+Descargar .txt => Deskargatu .txt
+Aún no hay menú esta semana => Oraindik ez dago menurik aste honetarako. Sakatu «✨ Sortu menu osasuntsua» eta arraina, lekaleak, barazkiak eta okela gorri gutxi dituen menua prestatuko dut.
+Te falta pescado => Arraina falta zaizu (helburua: 2 edo gehiago).
+Te faltan legumbres => Lekaleak falta zaizkizu (helburua: 2 edo gehiago).
+Hay más de una carne roja => Okela gorri bat baino gehiago dago: komeni da mugatzea.
+Equilibrio semanal correcto => Asteko oreka egokia: arraina, lekaleak eta okela gorri gutxi.
+Menú con más carga de carbohidratos => Karbohidrato-karga handiagoko menua: batez beste, kalorien {0}% karbohidratoetatik dator.
+Macros: porcentaje de las calorías => Makroak: nutriente bakoitzak (karbohidratoak, proteinak eta koipeak) ematen duen kalorien ehunekoa. Balio orientagarriak dira, errazio ertain baterako.
+Pulsa S + número para seleccionar => Sakatu A + zenbakia aste osoa aukeratzeko, edo egun bat egun hori bakarrik ikusteko. ● arrosa = gosaria · ● berdea = bazkaria · ● laranja = afaria
+Pulsa un día y se abre => Sakatu egun bat eta azpian irekitzen da, platerak aldatzeko edo errezeta ikusteko. Berriro sakatuz gero, ixten da.
+Solo están marcados => Aste honetako menuek behar dituzten osagaiak soilik daude markatuta. Desmarkatu etxean dituzunak; gainerako osagaiak behean daude, markatu gabe.
+En el iPhone: pulsa => iPhonean: sakatu «Partekatu» eta aukeratu Oharrak edo Gogorarazpenak, edo kopiatu zerrenda eta itsatsi Gogorarazpenetan (lerro bakoitza gogorarazpen bat izango da).
+Copiado ✓ Ya puedes pegarlo => Kopiatuta ✓ Orain Gogorarazpenetan edo Oharretan itsats dezakezu.
+Genera el menú de esta semana => Sortu aste honetako menua edo gehitu produktuak eskuz, eta hemen agertuko dira.
+Pulsa «✨ Generar menú => Sakatu «✨ Sortu menu osasuntsua» (edo «Sortu karbohidrato-menua») eta gosariak, bazkariak eta afariak beteko dira. Edozein plater alda dezakezu goitibeherako zerrendarekin. «Errezeta» botoiak nola prestatu azaltzen du.
+Pulsa una «S» con su número => Sakatu «A» eta bere zenbakia (A45, A46…) aste oso bat aukeratzeko. Hor bere menua sortu edo garbitu dezakezu eta zazpi egunak ikusi. Sakatu egun bat editatzeko. Geziekin hilabetea aldatzen duzu.
+Todas las recetas con ingredientes => Errezeta guztiak osagaiekin, urratsekin eta karbohidratoen, proteinen eta koipeen ehunekoarekin. Iragazi gosarien, bazkarien edo afarien arabera. Behean zureak gehi ditzakezu.
+Salen los ingredientes que necesita => Aste horretako menuak behar dituen osagaiak agertzen dira, markatuta. Desmarkatu etxean dituzunak. Gehiago gehi ditzakezu goian idatziz edo «Beste osagai batzuk» atalean.
+Cuando la lista esté lista => Zerrenda prest dagoenean, sakatu «Sortu iPhonerako zerrenda» eta gero «Partekatu» (aukeratu Oharrak edo Gogorarazpenak) edo «Kopiatu».
+Generar un menú sustituye => Menu bat sortzean, aste horretakoa ordezkatzen da. Zure datuak nabigatzaile honetan bakarrik gordetzen dira. Ehunekoak orientagarriak dira.`.split("\n").map(l=>{const i=l.indexOf(" => ");return[l.slice(0,i),l.slice(i+4)]}));
+const PK=Object.keys(EX).filter(k=>k.length>=14).sort((a,b)=>b.length-a.length);
+const RX=[[/^Compra (.+)$/,"Erosketak: $1"],[/^Semana (.+)$/,"Astea: $1"],[/^\((\d+)\) · marca los que quieras añadir$/,"($1) · markatu gehitu nahi dituzunak"],[/^Carb\. (\d+)%$/,"Karb. $1%"],[/^Prot\. (\d+)%$/,"Prot. $1%"],[/^Grasa (\d+)%$/,"Koipea $1%"]];
+const fill=(v,t)=>{const m=t.match(/\d+/g)||[];return v.replace(/\{(\d)\}/g,(_,i)=>m[i]??"")};
+const look=t=>{if(EX[t]!==undefined)return fill(EX[t],t);const k=PK.find(k=>t.startsWith(k));return k?fill(EX[k],t):null};
+function eu(t){if(/[.!?]\s/.test(t)){const q=t.split(/(?<=[.!?])\s+/).map(look);if(q.every(Boolean))return q.join(" ")}
+  const v=look(t);if(v)return v;for(const[r,x]of RX){const m=t.match(r);if(m)return x.replace(/\$(\d)/g,(_,i)=>m[i])}return t}
+function tx(root){const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;
+  while(n=w.nextNode()){if(n.parentNode.nodeName==="SCRIPT")continue;if(n._o===undefined)n._o=n.nodeValue;const o=n._o,t=o.trim();if(t)n.nodeValue=LG==="eu"?o.replace(t,()=>eu(t)):o}
+  root.querySelectorAll("[placeholder],[aria-label]").forEach(e=>["placeholder","aria-label"].forEach(a=>{if(!e.hasAttribute(a))return;const k="_o"+a;if(e[k]===undefined)e[k]=e.getAttribute(a);e.setAttribute(a,LG==="eu"?eu(e[k]):e[k])}))}
+function setLang(l){LG=l;try{localStorage.setItem("casa2-lang",l)}catch(_){}
+  const e=l==="eu";DN=e?DNE:DNS;DS=e?DSE:DSS;KN=e?{d:"Gosaria",c:"Bazkaria",n:"Afaria"}:{d:"Desayuno",c:"Comida",n:"Cena"};
+  Object.keys(TAGS).forEach(k=>TAGS[k][0]=TN[l][k]);
+  document.documentElement.lang=l;document.title=e?"Menua":"Menú";
+  document.querySelectorAll(".lg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.lg===l));
+  tx(document.body);draw()}
+let saved;try{saved=localStorage.getItem("casa2-lang")}catch(_){}
+setLang(saved||((navigator.language||"").slice(0,2)==="eu"?"eu":"es"));
+</script></body></html>
