@@ -260,7 +260,9 @@ details.box[open]>summary{margin-bottom:14px}
 .etq-qr .cap{font-size:7pt;text-align:center;margin-top:1mm}
 .etq-info{flex:1;min-width:0;display:flex;flex-direction:column;font-size:8.5pt;line-height:1.2}
 .etq-emp{font-size:7pt;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #000;padding-bottom:1mm;margin-bottom:1mm}
-.etq-id{font:700 12pt "Courier New",monospace;margin-bottom:1mm}
+.etq-id{font:700 12pt "Courier New",monospace}
+.etq-idr{margin-bottom:1mm;white-space:nowrap}
+.etq-b{display:block;font:700 10pt Arial,Helvetica,sans-serif;border:1.5px solid #000;text-align:center;padding:.3mm 0;margin-top:1mm;letter-spacing:.05em}
 .etq-urg{background:#000;color:#fff;font-weight:700;text-align:center;font-size:11pt;padding:.5mm 0;margin-bottom:1mm;letter-spacing:.1em}
 .etq-l{font-size:6.5pt;font-weight:700;margin-top:1mm}
 .etq-dest{font-size:11pt;font-weight:700;line-height:1.15}
@@ -271,6 +273,9 @@ details.box[open]>summary{margin-bottom:14px}
   body{background:#fff;padding:0}
   body>*:not(#etiqueta-print){display:none!important}
   #etiqueta-print{display:block}
+  #etiqueta-print .etq{break-after:page;page-break-after:always}
+  #etiqueta-print .etq:last-child{break-after:auto;page-break-after:auto}
+  #etiqueta-print.a4 .etq{break-after:auto;page-break-after:auto;break-inside:avoid;page-break-inside:avoid;margin:0 auto 6mm;border:1px dashed #999}
   .etq{border:none;box-shadow:none}
 }
 </style>
@@ -643,12 +648,12 @@ function vNuevo(){
 
 /* ===== Etiqueta ===== */
 function qrSvg(text){ const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({cellSize:4, margin:0, scalable:true}); }
-function etiquetaHTML(e){
+function etiquetaHTML(e, n = 1){
   return `<div class="etq">
     <div class="etq-qr">${qrSvg(urlEnvio(e.id))}<div class="cap">Escanea para ver<br>o actualizar el estado</div></div>
     <div class="etq-info">
       <div class="etq-emp">${esc(cfg.empresa)} · Envío interno</div>
-      <div class="etq-id">${esc(e.id)}</div>
+      <div class="etq-idr"><span class="etq-id">${esc(e.id)}</span>${e.bultos > 1 ? `<span class="etq-b">BULTO ${n} DE ${e.bultos}</span>` : ''}</div>
       ${e.prioridad === 'urgente' ? '<div class="etq-urg">URGENTE</div>' : ''}
       <div class="etq-l">PARA</div>
       <div class="etq-dest">${esc(e.destino.persona)}<br>${esc(lugar(e.destino))}</div>
@@ -657,7 +662,11 @@ function etiquetaHTML(e){
       <div class="etq-desc">${esc(e.tipo)}${e.descripcion ? ' – ' + esc(e.descripcion) : ''} · ${e.bultos} bulto${e.bultos > 1 ? 's' : ''} · ${fmt(e.fecha)}</div>
     </div></div>`;
 }
-function imprimir(e){ $('#etiqueta-print').innerHTML = etiquetaHTML(e); setTimeout(() => window.print(), 150); }
+function imprimir(e){
+  const p = $('#etiqueta-print'); p.className = cfg.etiqueta === 'A4' ? 'a4' : '';
+  p.innerHTML = Array.from({ length: Math.max(1, e.bultos || 1) }, (_, i) => etiquetaHTML(e, i + 1)).join('');
+  setTimeout(() => window.print(), 150);
+}
 
 /* ===== Vista: ficha del envío ===== */
 function mailAviso(e){
@@ -681,7 +690,7 @@ async function vFicha(id, nuevo){
     accion = `<div class="card next-card" style="--c:${col(nx)}">
       <div class="next-head"><span class="next-ic">${icon(ESTADOS[nx].icon)}</span><div><small>Paso ${idx + 2} de 4</small><b>${P.titulo}</b><p>${esc(P.texto(e))}</p></div></div>
       <div class="fields">
-        <div><label class="l">Tu nombre</label><input id="a-por" value="${esc(cfg.usuario)}" placeholder="Nombre y apellido"></div>
+        <div><label class="l">${{ transito:'Quién se lo lleva <i>(el que lo recoge en origen)</i>', recibido:'Quién lo recibe en destino', entregado:'Quién lo entrega' }[nx]}</label><input id="a-por" value="${nx === 'transito' ? '' : esc(cfg.usuario)}" placeholder="Nombre y apellido"></div>
         ${nx === 'recibido' ? `<div><label class="l">Dónde se recibe</label><input id="a-lugar" value="${esc(donde(dest))}"></div>` : ''}
         ${nx === 'entregado' ? `<div><label class="l">Lo recoge</label><input id="a-rec" value="${esc(dest.persona)}"></div>
           <div><label class="l">Firma <i>(opcional)</i></label><div class="sig-w"><canvas class="sig" id="sig"></canvas><span class="ph" id="sig-ph">Firma aquí con el dedo</span><button class="btn ghost" type="button" id="sig-clr">Borrar</button></div></div>` : ''}
@@ -697,7 +706,7 @@ async function vFicha(id, nuevo){
     ? `<div class="card"><div class="card-t">${icon('mail')} Avisar a ${esc(dest.persona)}</div><p class="muted" style="margin:-6px 0 12px">Se abrirá tu correo con el aviso ya escrito.</p><a class="btn sec" href="${mailAviso(e)}">${icon('mail')} Enviar aviso</a></div>` : '';
   const hist = e.historial.slice().reverse().map(h => `<li style="--c:${col(h.estado)}"><span class="d">${icon(ESTADOS[h.estado].icon)}</span><div>
       <b>${esc(h.estado === 'creado' ? 'Envío creado' : ESTADOS[h.estado].paso)}</b> <span class="t">· ${fmt(h.ts)}</span>
-      <div class="t">${h.estado === 'creado' ? 'Por' : 'Escaneado por'} ${esc(h.por)}${h.lugar ? ' · ' + esc(h.lugar) : ''}</div>
+      <div class="t">${{ creado:'Creado por', transito:'Se lo llevó', recibido:'Recibido por', entregado:'Entregado por' }[h.estado]} ${esc(h.por)}${h.lugar ? ' · ' + esc(h.lugar) : ''}</div>
       ${h.receptor ? `<div class="t">Lo recogió <b style="color:var(--ink);font-size:13px">${esc(h.receptor)}</b></div>` : ''}
       ${h.nota ? `<div class="t">“${esc(h.nota)}”</div>` : ''}
       ${h.firma ? `<img src="${h.firma}" alt="Firma">` : ''}</div></li>`).join('');
@@ -722,7 +731,8 @@ async function vFicha(id, nuevo){
     ${nuevo ? '' : accion}
     <div class="card"><details class="box" ${etqOpen ? 'open' : ''}><summary>Etiqueta</summary>
       <div class="etq-wrap">${etiquetaHTML(e)}</div>
-      <div class="btns" style="margin-top:14px"><button class="btn" id="b-print">${icon('printer')} Imprimir</button><button class="btn sec" id="b-copy">${icon('link')} Copiar enlace</button></div>
+      ${e.bultos > 1 ? `<p class="muted" style="margin:10px 0 0;text-align:center">Se imprime una etiqueta por bulto (1/${e.bultos} … ${e.bultos}/${e.bultos}), todas con el mismo QR.</p>` : ''}
+      <div class="btns" style="margin-top:14px"><button class="btn" id="b-print">${icon('printer')} ${e.bultos > 1 ? `Imprimir ${e.bultos} etiquetas` : 'Imprimir'}</button><button class="btn sec" id="b-copy">${icon('link')} Copiar enlace</button></div>
       ${urlOk() ? '' : `<div class="warn">${icon('alert')}<div>Estás en una vista previa, no en la web publicada: este QR no funcionará y puede que no se pueda imprimir. Publica la app y ábrela en el navegador, o pon su dirección en Ajustes.</div></div>`}
     </details></div>
     ${nuevo ? accion : ''}
@@ -747,7 +757,7 @@ async function vFicha(id, nuevo){
     if(sig) $('#sig-clr').onclick = () => { sig.clear(); $('#sig-ph').style.display = ''; };
     $('#a-go').onclick = async () => {
       const por = $('#a-por').value.trim();
-      if(!por){ toast('Escribe tu nombre para registrar quién escanea'); $('#a-por').focus(); return; }
+      if(!por){ toast(nx === 'transito' ? 'Escribe quién se lleva el paquete' : 'Escribe tu nombre'); $('#a-por').focus(); return; }
       const ev = { estado:nx, ts:Date.now(), por, nota:$('#a-nota').value.trim() };
       if(nx === 'transito') ev.lugar = donde(e.origen);
       if(nx === 'recibido') ev.lugar = $('#a-lugar').value.trim() || donde(dest);
@@ -757,7 +767,7 @@ async function vFicha(id, nuevo){
         ev.lugar = donde(dest);
         if(sig.drawn()) ev.firma = sig.data();
       }
-      cfg.usuario = por; saveCfg();
+      if(nx !== 'transito'){ cfg.usuario = por; saveCfg(); }
       const b = $('#a-go'); b.disabled = true; b.textContent = 'Guardando…';
       try{
         await Store.update(e.id, cur => {
