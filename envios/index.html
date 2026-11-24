@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f5f6fa">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Envíos internos</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+:root{
+  --bg:#f5f6fa;--card:#fff;--ink:#0f172a;--mute:#64748b;--line:#e5e7eb;--soft:#f1f5f9;
+  --pri:#4f46e5;--pri-soft:#eef2ff;--urg:#dc2626;--urg-soft:#fef2f2;
+  --c-creado:#64748b;--c-transito:#d97706;--c-recibido:#2563eb;--c-entregado:#16a34a;
+  --r:18px;--sh:0 1px 2px rgba(15,23,42,.04),0 4px 16px rgba(15,23,42,.06);
+  --nav-h:68px;--safe:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{color-scheme:light}
+body{margin:0;font:16px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,Roboto,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:calc(var(--nav-h) + var(--safe) + 16px)}
+svg.i{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+a{color:var(--pri)}
+button{font:inherit;color:inherit}
+
+/* ---- Barra superior ---- */
+.top{position:sticky;top:0;z-index:20;background:rgba(245,246,250,.85);backdrop-filter:saturate(180%) blur(14px);-webkit-backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid rgba(0,0,0,.04)}
+.top-in{max-width:980px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:12px}
+.logo{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,#6366f1,#4338ca);color:#fff;display:grid;place-items:center;box-shadow:0 4px 12px rgba(79,70,229,.35)}
+.logo svg.i{width:20px;height:20px}
+.brand{font-weight:700;font-size:17px;letter-spacing:-.01em;line-height:1.1}
+.brand small{display:block;font-weight:500;font-size:12px;color:var(--mute)}
+.tr{margin-left:auto;display:flex;gap:6px;align-items:center}
+.rol{font-size:12px;font-weight:700;padding:6px 10px;border-radius:99px;background:var(--ink);color:#fff}
+.rol:empty{display:none}
+.conn{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:6px 10px;border-radius:99px;text-decoration:none;white-space:nowrap}
+.conn::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.conn.cloud{background:#dcfce7;color:#15803d}
+.conn.local{background:#fef3c7;color:#b45309}
+.conn.err{background:#fee2e2;color:#b91c1c}
+
+/* ---- Navegación inferior (móvil) ---- */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);padding:6px 8px calc(6px + var(--safe));display:grid;grid-template-columns:repeat(5,1fr);align-items:end}
+.nav a{display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;color:#94a3b8;font-size:11px;font-weight:600;padding:6px 0}
+.nav a.on{color:var(--pri)}
+.nav a.fab{color:#fff}
+.nav a.fab span.b{width:58px;height:58px;border-radius:20px;background:linear-gradient(135deg,#6366f1,#4338ca);display:grid;place-items:center;margin-top:-26px;box-shadow:0 8px 20px rgba(79,70,229,.4);border:4px solid var(--bg)}
+.nav a.fab svg.i{width:26px;height:26px}
+.nav a.fab em{font-style:normal;color:#94a3b8}
+.nav a.fab.on em{color:var(--pri)}
+@media(min-width:900px){
+  body{padding-bottom:30px}
+  .nav{position:sticky;top:61px;bottom:auto;display:flex;justify-content:center;gap:4px;background:transparent;border:0;backdrop-filter:none;padding:10px;max-width:980px;margin:0 auto}
+  .nav a{flex-direction:row;font-size:14px;padding:9px 16px;border-radius:12px;gap:8px;color:var(--mute)}
+  .nav a:hover{background:#fff}
+  .nav a.on{background:#fff;box-shadow:var(--sh)}
+  .nav a.fab span.b{width:auto;height:auto;margin:0;background:none;box-shadow:none;border:0;display:contents}
+  .nav a.fab{color:var(--mute)}
+  .nav a.fab em{color:inherit}
+  .nav a.fab.on{color:var(--pri)}
+  .nav a.fab svg.i{width:22px;height:22px}
+}
+
+main{max-width:980px;margin:0 auto;padding:18px}
+@media(min-width:900px){main{padding-top:4px}}
+.h1{font-size:28px;font-weight:800;letter-spacing:-.025em;margin:4px 0 4px}
+.sub{color:var(--mute);margin:0 0 18px}
+.card{background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:var(--sh)}
+.card-t{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;margin:0 0 14px}
+.num{width:28px;height:28px;border-radius:50%;background:var(--pri);color:#fff;display:grid;place-items:center;font-size:14px;font-weight:700;flex:none}
+.muted{color:var(--mute);font-size:14px}
+.small{font-size:12px;color:var(--mute);word-break:break-all}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+
+/* ---- Formularios ---- */
+.f{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.f .s2{grid-column:span 2}.f .s4{grid-column:1/-1}
+@media(max-width:620px){.f{grid-template-columns:1fr 1fr}.f .s2,.f .s4{grid-column:1/-1}}
+label.l{display:block;font-size:13px;font-weight:600;color:#334155;margin:0 0 6px}
+label.l i{font-style:normal;font-weight:400;color:var(--mute)}
+input,select,textarea{width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;font:inherit;font-size:16px;background:#fff;color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--pri);box-shadow:0 0 0 4px var(--pri-soft)}
+input:disabled,textarea:disabled{background:var(--soft);color:var(--mute)}
+textarea{min-height:84px;resize:vertical}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{position:relative}
+.pill input{position:absolute;opacity:0;pointer-events:none}
+.pill span{display:inline-block;padding:10px 16px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-size:15px;font-weight:500;cursor:pointer;transition:.15s}
+.pill input:checked+span{background:var(--ink);border-color:var(--ink);color:#fff}
+.prio{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.prio label{position:relative;cursor:pointer}
+.prio input{position:absolute;opacity:0}
+.prio span{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border-radius:14px;border:1.5px solid var(--line);font-weight:600;transition:.15s}
+.prio input:checked+span{border-color:var(--pri);background:var(--pri-soft);color:var(--pri)}
+.prio input[value=urgente]:checked+span{border-color:var(--urg);background:var(--urg-soft);color:var(--urg)}
+.stepperN{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.stepperN button{width:48px;height:48px;border:0;background:var(--soft);font-size:22px;cursor:pointer}
+.stepperN input{border:0;text-align:center;border-radius:0;box-shadow:none!important;font-weight:700}
+details.more summary{cursor:pointer;color:var(--pri);font-weight:600;font-size:14px;list-style:none;padding:4px 0}
+details.more summary::-webkit-details-marker{display:none}
+
+/* ---- Botones ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;border:0;border-radius:14px;padding:13px 18px;font-weight:650;font-size:15px;cursor:pointer;background:var(--pri);color:#fff;text-decoration:none;transition:transform .1s,filter .15s}
+.btn:active{transform:scale(.98)}
+.btn:hover{filter:brightness(1.06)}
+.btn.sec{background:var(--pri-soft);color:var(--pri)}
+.btn.ghost{background:var(--soft);color:var(--ink)}
+.btn.big{width:100%;padding:17px;font-size:17px;border-radius:16px}
+.btn:disabled{opacity:.55;pointer-events:none}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+.btns .btn{flex:1;min-width:140px}
+.sticky-go{position:sticky;bottom:calc(var(--nav-h) + var(--safe) + 8px);z-index:10;margin-top:6px}
+.sticky-go .btn{box-shadow:0 10px 24px rgba(79,70,229,.35)}
+@media(min-width:900px){.sticky-go{bottom:16px}}
+
+/* ---- Inicio ---- */
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.act{display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:var(--r);text-decoration:none;color:#fff;min-height:150px;box-shadow:var(--sh);position:relative;overflow:hidden}
+.act::after{content:"";position:absolute;right:-30px;bottom:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.12)}
+.act.a1{background:linear-gradient(140deg,#6366f1,#4338ca)}
+.act.a2{background:linear-gradient(140deg,#0f172a,#334155)}
+.act .ic{width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.18);display:grid;place-items:center}
+.act b{font-size:19px;letter-spacing:-.01em}
+.act small{display:block;opacity:.8;font-size:13px;font-weight:500;margin-top:2px}
+.how{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;counter-reset:h}
+.how div{text-align:center;font-size:12px;color:var(--mute);line-height:1.25}
+.how .d{width:44px;height:44px;border-radius:14px;margin:0 auto 8px;display:grid;place-items:center;color:#fff}
+.how b{display:block;color:var(--ink);font-size:13px;margin-bottom:2px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:620px){.stats{grid-template-columns:1fr 1fr}}
+.stat{background:#fff;border-radius:16px;padding:14px;box-shadow:var(--sh);border:0;text-align:left;cursor:pointer}
+.stat b{display:block;font-size:28px;font-weight:800;letter-spacing:-.02em;color:var(--c)}
+.stat span{font-size:13px;color:var(--mute);font-weight:600}
+
+/* ---- Estados ---- */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;font-size:12px;font-weight:700;background:color-mix(in srgb,var(--c) 13%,#fff);color:var(--c);white-space:nowrap}
+.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.badge.urg{--c:var(--urg)}
+.stepper{display:grid;grid-template-columns:repeat(4,1fr);list-style:none;padding:0;margin:20px 0 4px}
+.stepper li{position:relative;text-align:center;font-size:12px;color:var(--mute);padding:0 2px}
+.stepper li::before{content:"";position:absolute;top:20px;right:50%;width:100%;height:3px;background:var(--line);z-index:0}
+.stepper li:first-child::before{display:none}
+.stepper li.done::before{background:var(--c)}
+.stepper .dot{position:relative;z-index:1;width:42px;height:42px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;background:#fff;border:2px solid var(--line);color:#cbd5e1}
+.stepper .dot svg.i{width:20px;height:20px}
+.stepper li.done .dot{background:var(--c);border-color:var(--c);color:#fff}
+.stepper li.next .dot{border:2px dashed var(--c);color:var(--c);animation:pulse 1.8s infinite}
+.stepper b{display:block;font-size:13px;color:#94a3b8;font-weight:600}
+.stepper li.done b,.stepper li.next b{color:var(--ink)}
+.stepper small{display:block;font-size:11px;margin-top:1px;min-height:14px}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 35%,transparent)}50%{box-shadow:0 0 0 8px transparent}}
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:10px}
+.mini span{height:5px;border-radius:9px;background:var(--line)}
+.mini span.on{background:var(--c)}
+
+/* ---- Ficha ---- */
+.back{display:inline-flex;align-items:center;gap:4px;color:var(--mute);text-decoration:none;font-weight:600;font-size:14px;margin-bottom:10px}
+.hero{border-top:5px solid var(--c)}
+.hero-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.idm{font:700 15px ui-monospace,"SF Mono",Menlo,monospace;color:var(--mute);letter-spacing:.02em}
+.frase{font-size:20px;font-weight:700;letter-spacing:-.015em;margin:12px 0 0;line-height:1.3}
+.route{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;background:var(--soft);border-radius:14px;padding:12px 14px;margin-top:14px}
+.route small{display:block;font-size:11px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+.route b{display:block;font-size:15px}
+.route span{font-size:13px;color:var(--mute)}
+.route .arr{color:#94a3b8}
+.route div:last-child{text-align:right}
+.next-card{border:2px solid var(--c);background:color-mix(in srgb,var(--c) 5%,#fff)}
+.next-head{display:flex;gap:14px;align-items:center;margin-bottom:14px}
+.next-ic{width:52px;height:52px;border-radius:16px;background:var(--c);color:#fff;display:grid;place-items:center;flex:none}
+.next-ic svg.i{width:26px;height:26px}
+.next-head small{display:block;font-size:12px;font-weight:700;color:var(--c);text-transform:uppercase;letter-spacing:.06em}
+.next-head b{display:block;font-size:20px;letter-spacing:-.015em}
+.next-head p{margin:2px 0 0;color:var(--mute);font-size:14px}
+.next-card .btn.big{background:var(--c);box-shadow:0 10px 22px color-mix(in srgb,var(--c) 35%,transparent)}
+.fields{display:grid;gap:12px;margin-bottom:14px}
+.done-card{text-align:center;background:linear-gradient(140deg,#16a34a,#15803d);color:#fff}
+.done-card .ic{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;margin:0 auto 8px}
+.done-card .ic svg.i{width:32px;height:32px;stroke-width:3}
+.ok-banner{display:flex;gap:12px;align-items:center;background:#dcfce7;color:#14532d;border-radius:var(--r);padding:14px 16px;margin-bottom:14px;font-weight:600}
+.ok-banner .ic{width:36px;height:36px;border-radius:50%;background:#16a34a;color:#fff;display:grid;place-items:center;flex:none}
+.warn{display:flex;gap:10px;background:#fef3c7;color:#92400e;border-radius:12px;padding:12px;font-size:13px;font-weight:500;margin-top:12px}
+.sig{width:100%;height:160px;border:1.5px dashed #cbd5e1;border-radius:12px;background:#fff;touch-action:none;display:block}
+.sig-w{position:relative}
+.sig-w .btn{position:absolute;right:8px;top:8px;padding:6px 10px;font-size:12px;border-radius:9px}
+.sig-w .ph{position:absolute;inset:0;display:grid;place-items:center;color:#cbd5e1;pointer-events:none;font-size:14px}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{display:grid;grid-template-columns:36px 1fr;gap:12px;padding-bottom:16px;position:relative}
+.tl li::before{content:"";position:absolute;left:17px;top:36px;bottom:0;width:2px;background:var(--line)}
+.tl li:last-child::before{display:none}
+.tl .d{width:36px;height:36px;border-radius:12px;background:color-mix(in srgb,var(--c) 14%,#fff);color:var(--c);display:grid;place-items:center}
+.tl .d svg.i{width:18px;height:18px}
+.tl b{font-size:15px}
+.tl .t{font-size:13px;color:var(--mute)}
+.tl img{max-width:220px;width:100%;border:1px solid var(--line);border-radius:10px;margin-top:6px;background:#fff}
+dl.kv{display:grid;grid-template-columns:110px 1fr;gap:10px 12px;margin:0;font-size:15px}
+dl.kv dt{color:var(--mute);font-size:14px}
+dl.kv dd{margin:0;font-weight:500}
+details.box>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:17px}
+details.box>summary::-webkit-details-marker{display:none}
+details.box>summary::after{content:"›";font-size:26px;color:var(--mute);transform:rotate(90deg);transition:.2s;line-height:1}
+details.box[open]>summary::after{transform:rotate(-90deg)}
+details.box[open]>summary{margin-bottom:14px}
+
+/* ---- Lista ---- */
+.search{position:relative;margin-bottom:12px}
+.search svg.i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#94a3b8;width:20px;height:20px}
+.search input{padding-left:44px;background:#fff;border-color:transparent;box-shadow:var(--sh)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;margin:0 -18px;padding-left:18px;padding-right:18px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:0;background:#fff;border-radius:99px;padding:9px 14px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:var(--sh);color:#334155}
+.chip i{font-style:normal;color:var(--mute);font-weight:500;margin-left:4px}
+.chip.on{background:var(--ink);color:#fff}
+.chip.on i{color:#cbd5e1}
+.item{display:block;text-decoration:none;color:inherit;background:#fff;border-radius:16px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--sh);transition:transform .1s}
+.item:active{transform:scale(.99)}
+.item .r1{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.item .r2{font-weight:650;font-size:16px;margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.item .r2 svg.i{width:16px;height:16px;color:#94a3b8}
+.item .r3{font-size:13px;color:var(--mute);margin-top:2px}
+.item.urg{box-shadow:inset 4px 0 0 var(--urg),var(--sh)}
+.empty{text-align:center;color:var(--mute);padding:40px 16px}
+.empty .ic{width:64px;height:64px;border-radius:20px;background:#fff;display:grid;place-items:center;margin:0 auto 12px;box-shadow:var(--sh);color:#94a3b8}
+
+/* ---- Escáner ---- */
+.scan{position:relative;border-radius:24px;overflow:hidden;background:#000;aspect-ratio:3/4;max-height:62vh;margin:0 auto 14px;width:100%;max-width:520px}
+.scan video{width:100%;height:100%;object-fit:cover;display:block}
+.scan .frame{position:absolute;inset:18%;border-radius:22px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
+.scan .frame::before,.scan .frame::after{content:"";position:absolute;inset:-3px;border:4px solid #fff;border-radius:24px;clip-path:polygon(0 0,28% 0,28% 4px,4px 4px,4px 28%,0 28%,0 72%,4px 72%,4px calc(100% - 4px),28% calc(100% - 4px),28% 100%,72% 100%,72% calc(100% - 4px),calc(100% - 4px) calc(100% - 4px),calc(100% - 4px) 72%,100% 72%,100% 28%,calc(100% - 4px) 28%,calc(100% - 4px) 4px,72% 4px,72% 0,100% 0,100% 100%,0 100%)}
+.scan .frame::after{display:none}
+.scan .line{position:absolute;left:20%;right:20%;height:2px;background:#818cf8;box-shadow:0 0 12px #818cf8;top:20%;animation:scanl 2.2s ease-in-out infinite}
+@keyframes scanl{0%,100%{top:20%}50%{top:80%}}
+.scan .st{position:absolute;left:0;right:0;bottom:16px;text-align:center;color:#fff;font-weight:600;font-size:14px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.row-in{display:flex;gap:8px}
+.row-in input{font-family:ui-monospace,Menlo,monospace;text-transform:uppercase}
+
+/* ---- Toast ---- */
+.info-card{display:flex;gap:14px;align-items:center}
+.info-card .ic{width:48px;height:48px;border-radius:14px;background:var(--soft);color:var(--mute);display:grid;place-items:center;flex:none}
+.info-card b{font-size:16px}
+.created{background:#dcfce7;box-shadow:none;color:#14532d}
+.created .h{display:flex;gap:12px;align-items:center;font-size:18px;font-weight:700}
+.created .h span{width:36px;height:36px;border-radius:50%;background:#16a34a;color:#fff;display:grid;place-items:center;flex:none}
+.code-big{font:800 26px ui-monospace,Menlo,monospace;letter-spacing:.02em;background:#fff;color:var(--ink);border-radius:12px;padding:10px 14px;display:inline-block;margin:6px 0 10px}
+.follow{margin-top:12px}
+.follow .btn{width:100%}
+.btn.on-star svg.i{fill:currentColor}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#15803d;background:#dcfce7;padding:6px 10px;border-radius:99px}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:#22c55e;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.3}}
+#toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + var(--safe) + 20px);transform:translate(-50%,30px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;font-weight:600;font-size:14px;opacity:0;transition:.25s;z-index:50;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:90vw;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---- Etiqueta ---- */
+.etq-wrap{display:flex;justify-content:center;padding:14px;background:var(--soft);border-radius:14px;overflow:auto}
+.etq{width:100mm;height:70mm;background:#fff;color:#000;border:1px solid #000;display:flex;gap:3mm;padding:3mm;font-family:Arial,Helvetica,sans-serif;overflow:hidden;flex:none;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.etq-qr{width:40mm;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.etq-qr svg{width:40mm;height:40mm;display:block}
+.etq-qr .cap{font-size:7pt;text-align:center;margin-top:1mm}
+.etq-info{flex:1;min-width:0;display:flex;flex-direction:column;font-size:8.5pt;line-height:1.2}
+.etq-emp{font-size:7pt;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #000;padding-bottom:1mm;margin-bottom:1mm}
+.etq-id{font:700 12pt "Courier New",monospace;margin-bottom:1mm}
+.etq-urg{background:#000;color:#fff;font-weight:700;text-align:center;font-size:11pt;padding:.5mm 0;margin-bottom:1mm;letter-spacing:.1em}
+.etq-l{font-size:6.5pt;font-weight:700;margin-top:1mm}
+.etq-dest{font-size:11pt;font-weight:700;line-height:1.15}
+.etq-desc{margin-top:auto;font-size:7.5pt;border-top:1px solid #000;padding-top:1mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:480px){.etq-wrap{padding:10px}.etq-wrap .etq{zoom:.8}}
+#etiqueta-print{display:none}
+@media print{
+  body{background:#fff;padding:0}
+  body>*:not(#etiqueta-print){display:none!important}
+  #etiqueta-print{display:block}
+  .etq{border:none;box-shadow:none}
+}
+</style>
+<style id="page-style">@page{size:100mm 70mm;margin:0}</style>
+</head>
+<body>
+<div class="top"><div class="top-in">
+  <div class="logo"><svg class="i" viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg></div>
+  <div class="brand"><span id="h-emp">Envíos internos</span><small>Seguimiento con QR</small></div>
+  <div class="tr"><span id="rol" class="rol"></span><a id="conn" class="conn" href="#/ajustes"></a></div>
+</div></div>
+<nav class="nav" id="nav"></nav>
+<main id="app"></main>
+<div id="toast"></div>
+<div id="etiqueta-print"></div>
+
+<script>
+/* =====================================================================
+   CONFIGURACIÓN DE LA EMPRESA — rellenar UNA VEZ antes de publicar.
+   Lo que se ponga aquí se aplica a todos los ordenadores y móviles,
+   y ya no hay que configurar nada en Ajustes.
+   ===================================================================== */
+const CONFIG_FIJA = {
+  empresa:   '',   // Nombre en la etiqueta. Ej.: 'Ingeteam · Envíos internos'
+  baseUrl:   '',   // Dirección donde se publica la app. Ej.: 'https://intranet.empresa.com/envios/'
+  sedes:     [],   // Ej.: ['Zamudio', 'Ortuella']
+  edificios: [],   // Ej.: ['106', 'Ballonti']
+  pinAlmacen: '',  // PIN del modo almacén. Ej.: '4821'. Con PIN, solo almacén/recepción pueden cambiar estados.
+                   // Vacío = cualquiera puede cambiarlos.
+  firebase:  null  // Pegar aquí el objeto firebaseConfig de Firebase. Ej.:
+                   // { apiKey: "...", authDomain: "...", projectId: "...", storageBucket: "...", messagingSenderId: "...", appId: "..." }
+};
+/* ===================================================================== */
+
+/* ===== Iconos ===== */
+const IC = {
+  home:'<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  scan:'<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  cog:'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  package:'<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/>',
+  truck:'<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  building:'<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"/>',
+  userCheck:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  printer:'<path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+  link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
+  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+  arrow:'<path d="M5 12h14M12 5l7 7-7 7"/>',
+  back:'<path d="m15 18-6-6 6-6"/>',
+  alert:'<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>',
+  refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  star:'<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>',
+  lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'
+};
+const icon = n => `<svg class="i" viewBox="0 0 24 24">${IC[n] || ''}</svg>`;
+
+/* ===== Utilidades ===== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){ alert('No se pudo guardar en este dispositivo: ' + e.message); } }
+};
+const fmt = ts => new Date(ts).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+const hora = ts => new Date(ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+const corto = ts => { const d = new Date(ts), h = new Date(); return d.toDateString() === h.toDateString() ? hora(ts) : d.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'}) + ' ' + hora(ts); };
+const fmtId = (y, n) => `ENV-${y}-${String(n).padStart(6,'0')}`;
+const lugar = o => [o.sede, o.edificio ? 'Edif. ' + o.edificio : '', o.planta ? 'Pl. ' + o.planta : ''].filter(Boolean).join(' · ');
+const donde = o => [o.sede, o.edificio].filter(Boolean).join(' · ');
+let toastT; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
+
+/* ===== Configuración ===== */
+const DEF = { empresa:'Envíos internos', baseUrl:'', sedes:['Zamudio','Ortuella'], edificios:['106','Ballonti'], etiqueta:'100x70', firebase:'', usuario:'', pin:'' };
+const FIJO = {};
+if(CONFIG_FIJA.empresa) FIJO.empresa = CONFIG_FIJA.empresa;
+if(CONFIG_FIJA.baseUrl) FIJO.baseUrl = CONFIG_FIJA.baseUrl;
+if(CONFIG_FIJA.sedes && CONFIG_FIJA.sedes.length) FIJO.sedes = CONFIG_FIJA.sedes;
+if(CONFIG_FIJA.edificios && CONFIG_FIJA.edificios.length) FIJO.edificios = CONFIG_FIJA.edificios;
+if(CONFIG_FIJA.pinAlmacen) FIJO.pin = String(CONFIG_FIJA.pinAlmacen);
+let cfg = Object.assign({}, DEF, LS.get('env_cfg', {}), FIJO);
+const fijo = k => k === 'firebase' ? !!CONFIG_FIJA.firebase : k in FIJO;
+const nf = k => fijo(k) ? ' disabled title="Fijado por la empresa"' : '';
+const saveCfg = () => LS.set('env_cfg', cfg);
+const webReal = () => /^https?:$/.test(location.protocol) && location.origin !== 'null';
+const baseUrl = () => cfg.baseUrl ? cfg.baseUrl.trim() : webReal() ? location.origin + location.pathname : 'https://configura-la-direccion-en-ajustes/';
+const urlOk = () => !!cfg.baseUrl || webReal();
+const urlEnvio = id => { const b = baseUrl(); return b + (b.includes('?') ? '&' : '?') + 'envio=' + encodeURIComponent(id); };
+
+/* ===== Estados y pasos ===== */
+const ORDEN = ['creado','transito','recibido','entregado'];
+const ESTADOS = {
+  creado:   { label:'Pendiente de recogida', paso:'Creado',     icon:'package',   next:'transito' },
+  transito: { label:'En tránsito',           paso:'Recogido',   icon:'truck',     next:'recibido' },
+  recibido: { label:'En destino',            paso:'En destino', icon:'building',  next:'entregado' },
+  entregado:{ label:'Entregado',             paso:'Entregado',  icon:'userCheck', next:null }
+};
+const PASOS = {
+  transito:  { titulo:'Recoger el paquete',       texto:e => `Pulsa cuando el paquete salga de ${donde(e.origen)}.`,                    boton:'Confirmar recogida' },
+  recibido:  { titulo:'Recibir en destino',       texto:e => `Pulsa cuando el paquete llegue a ${donde(e.destino)}.`,                   boton:'Confirmar llegada' },
+  entregado: { titulo:'Entregar al destinatario', texto:e => `Entrega el paquete a ${e.destino.persona}. Puede firmar en la pantalla.`, boton:'Confirmar entrega' }
+};
+const col = k => `var(--c-${k})`;
+
+/* ===== Almacenamiento: local o Firebase ===== */
+const Local = {
+  all(){ return LS.get('env_data', {}); },
+  put(e){ const a = this.all(); a[e.id] = e; LS.set('env_data', a); },
+  async nextId(){ const y = new Date().getFullYear(); const c = LS.get('env_cnt', {}); c[y] = (c[y] || 0) + 1; LS.set('env_cnt', c); return fmtId(y, c[y]); },
+  async save(e){ this.put(e); },
+  async get(id){ return this.all()[id] || null; },
+  async list(){ return Object.values(this.all()).sort((a,b) => b.creado - a.creado); },
+  async update(id, fn){ const e = await this.get(id); if(!e) throw new Error('El envío no existe'); const n = fn(e); this.put(n); return n; },
+  watch(ids, cb){ const run = () => { const a = this.all(); cb(ids.map(i => a[i]).filter(Boolean)); }; run();
+    const h = ev => { if(ev.key === 'env_data') run(); }; addEventListener('storage', h); return () => removeEventListener('storage', h); }
+};
+const Cloud = {
+  db:null,
+  async nextId(){
+    const y = new Date().getFullYear();
+    const ref = this.db.collection('contadores').doc('envios-' + y);
+    const n = await this.db.runTransaction(async t => { const s = await t.get(ref); const n = (s.exists ? s.data().n : 0) + 1; t.set(ref, {n}); return n; });
+    return fmtId(y, n);
+  },
+  async save(e){ await this.db.collection('envios').doc(e.id).set(e); },
+  async get(id){ const s = await this.db.collection('envios').doc(id).get(); return s.exists ? s.data() : null; },
+  async list(){ const q = await this.db.collection('envios').orderBy('creado','desc').limit(1000).get(); return q.docs.map(d => d.data()); },
+  async update(id, fn){
+    const ref = this.db.collection('envios').doc(id);
+    return this.db.runTransaction(async t => { const s = await t.get(ref); if(!s.exists) throw new Error('El envío no existe'); const n = fn(s.data()); t.set(ref, n); return n; });
+  },
+  watch(ids, cb){
+    if(!ids.length){ cb([]); return () => {}; }
+    const m = {}; const fire = () => { if(Object.keys(m).length === ids.length) cb(ids.map(i => m[i]).filter(Boolean)); };
+    const us = ids.map(id => this.db.collection('envios').doc(id).onSnapshot(s => { m[id] = s.exists ? s.data() : null; fire(); }, () => { m[id] = null; fire(); }));
+    return () => us.forEach(u => u());
+  }
+};
+let Store = Local, modoError = '';
+
+function parseFirebase(txt){
+  let s = txt.trim(); const a = s.indexOf('{'), b = s.lastIndexOf('}');
+  if(a < 0 || b < 0) throw new Error('No encuentro el objeto { ... } de configuración');
+  s = s.slice(a, b + 1).replace(/'/g, '"').replace(/([{,]\s*)([A-Za-z_]\w*)\s*:/g, '$1"$2":').replace(/,\s*}/g, '}');
+  const o = JSON.parse(s); if(!o.apiKey || !o.projectId) throw new Error('Faltan apiKey o projectId');
+  return o;
+}
+const loadScript = src => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => ko(new Error('No se pudo cargar ' + src)); document.head.appendChild(s); });
+async function initStore(){
+  if(!CONFIG_FIJA.firebase && !cfg.firebase.trim()) return;
+  try{
+    const conf = CONFIG_FIJA.firebase || parseFirebase(cfg.firebase);
+    if(!conf.apiKey || !conf.projectId) throw new Error('Faltan apiKey o projectId en la configuración');
+    await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+    await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
+    if(!firebase.apps.length) firebase.initializeApp(conf);
+    Cloud.db = firebase.firestore(); Store = Cloud;
+  }catch(e){ modoError = e.message; }
+}
+function pintaModo(){
+  const c = $('#conn');
+  if(modoError){ c.className = 'conn err'; c.textContent = 'Error de conexión'; c.title = modoError; }
+  else if(Store === Cloud){ c.className = 'conn cloud'; c.textContent = 'Conectado'; c.title = 'Los envíos se comparten entre todos los dispositivos'; }
+  else { c.className = 'conn local'; c.textContent = 'Solo este equipo'; c.title = 'Los envíos solo se guardan en este dispositivo. Conecta Firebase en Ajustes.'; }
+  $('#rol').textContent = cfg.pin && esAlmacen() ? 'Almacén' : '';
+  $('#h-emp').textContent = cfg.empresa || 'Envíos internos';
+  document.title = (cfg.empresa || 'Envíos') + ' · Envíos internos';
+  $('#page-style').textContent = cfg.etiqueta === 'A4' ? '@page{size:A4;margin:10mm}' : '@page{size:100mm 70mm;margin:0}';
+}
+
+/* ===== Navegación ===== */
+const esAlmacen = () => !cfg.pin || LS.get('env_almacen', '') === cfg.pin;
+const misIds = () => LS.get('env_mis', []);
+const sigo = id => misIds().includes(id);
+const seguir = id => { const m = misIds(); if(!m.includes(id)){ m.unshift(id); LS.set('env_mis', m.slice(0, 300)); } };
+const dejar = id => LS.set('env_mis', misIds().filter(x => x !== id));
+let unsubs = [];
+const limpiar = () => { unsubs.forEach(u => { try{ u(); }catch(_){} }); unsubs = []; };
+function pintaNav(v){
+  const alm = esAlmacen();
+  const NAV = [['inicio','home','Inicio'], alm ? ['envios','list','Envíos'] : ['mis','star','Mis envíos'], ['escanear','scan', alm ? 'Escanear' : 'Consultar'], ['nuevo','plus','Nuevo'], ['ajustes','cog','Ajustes']];
+  $('#nav').innerHTML = NAV.map(([k,ic,l]) => k === 'escanear'
+    ? `<a href="#/${k}" class="fab ${v === k ? 'on' : ''}"><span class="b">${icon(ic)}</span><em>${l}</em></a>`
+    : `<a href="#/${k}" class="${v === k ? 'on' : ''}">${icon(ic)}<span>${l}</span></a>`).join('');
+}
+function route(){
+  const q = new URLSearchParams(location.search).get('envio');
+  let h = location.hash.replace(/^#\/?/, '');
+  if(q){ history.replaceState(null, '', location.pathname + '#/envio/' + encodeURIComponent(q)); h = 'envio/' + encodeURIComponent(q); }
+  let [view, arg, extra] = h.split('/');
+  const alm = esAlmacen();
+  if(view === 'panel') view = 'envios';
+  if(view === 'envios' && !alm) view = 'mis';
+  stopScanner(); limpiar();
+  pintaNav(view === 'envio' ? (alm ? 'envios' : 'mis') : (view || 'inicio'));
+  window.scrollTo(0, 0);
+  if(view === 'nuevo') vNuevo();
+  else if(view === 'envio' && arg) vFicha(decodeURIComponent(arg), extra === 'nuevo');
+  else if(view === 'escanear') vScan();
+  else if(view === 'ajustes') vAjustes();
+  else if(view === 'envios') vLista();
+  else if(view === 'mis') vMis();
+  else vInicio();
+}
+window.addEventListener('hashchange', route);
+
+/* ===== Componentes ===== */
+const ultimo = (e, est) => e.historial.filter(h => h.estado === est).pop() || {};
+function frase(e){
+  const u = ultimo(e, e.estado);
+  switch(e.estado){
+    case 'creado': return `Pendiente de recogida en ${donde(e.origen)}`;
+    case 'transito': return `En tránsito desde ${donde(e.origen)}, salió a las ${hora(u.ts)}`;
+    case 'recibido': return `Ha llegado a ${u.lugar || donde(e.destino)} a las ${hora(u.ts)}. Falta entregarlo a ${e.destino.persona}`;
+    case 'entregado': return `Entregado a ${u.receptor || e.destino.persona} el ${fmt(u.ts)}`;
+  }
+}
+function stepper(e){
+  const idx = ORDEN.indexOf(e.estado);
+  return `<ol class="stepper" style="--c:${col(e.estado)}">${ORDEN.map((k,i) => {
+    const h = ultimo(e, k), cls = i <= idx ? 'done' : i === idx + 1 ? 'next' : '';
+    return `<li class="${cls}"><span class="dot">${i <= idx ? icon('check') : icon(ESTADOS[k].icon)}</span><b>${ESTADOS[k].paso}</b><small>${h.ts ? corto(h.ts) : i === idx + 1 ? 'Siguiente' : ''}</small></li>`;
+  }).join('')}</ol>`;
+}
+const mini = e => { const idx = ORDEN.indexOf(e.estado); return `<div class="mini" style="--c:${col(e.estado)}">${ORDEN.map((k,i) => `<span class="${i <= idx ? 'on' : ''}"></span>`).join('')}</div>`; };
+const badge = e => `<span class="badge" style="--c:${col(e.estado)}">${ESTADOS[e.estado].label}</span>`;
+const urgB = e => e.prioridad === 'urgente' ? '<span class="badge urg">Urgente</span>' : '';
+const itemHTML = e => `<a class="item ${e.prioridad === 'urgente' && e.estado !== 'entregado' ? 'urg' : ''}" href="#/envio/${encodeURIComponent(e.id)}">
+    <div class="r1"><span class="idm">${esc(e.id)}</span><span style="display:flex;gap:6px">${urgB(e)}${badge(e)}</span></div>
+    <div class="r2">${esc(donde(e.origen))} ${icon('arrow')} ${esc(donde(e.destino))}</div>
+    <div class="r3">Para ${esc(e.destino.persona)} · ${esc(e.tipo)} · ${corto(e.actualizado || e.creado)}</div>
+    ${mini(e)}</a>`;
+
+/* ===== Vista: inicio ===== */
+let filtro = { estado:'activos', q:'', desde:'', hasta:'' };
+const porActividad = (a,b) => (a.estado === 'entregado') - (b.estado === 'entregado') || (b.actualizado || b.creado) - (a.actualizado || a.creado);
+async function vInicio(){
+  limpiar();
+  const alm = esAlmacen();
+  const hola = cfg.usuario ? `Hola, ${esc(cfg.usuario.split(' ')[0])}` : 'Envíos internos';
+  const pasos = alm
+    ? ORDEN.map((k,i) => [ESTADOS[k].icon, `${i + 1}. ${['Crear','Recoger','Recibir','Entregar'][i]}`, ['Rellena y pega la etiqueta','Escanea al salir','Escanea al llegar','Escanea y firma'][i], col(k)])
+    : [['package','1. Crea el envío','Recibes un código',col('creado')],['truck','2. Bájalo al almacén','Con el código o la etiqueta',col('transito')],['star','3. Síguelo aquí','Sin preguntar a nadie',col('entregado')]];
+  $('#app').innerHTML = `
+    <div class="h1">${hola}</div><p class="sub">¿Qué quieres hacer?</p>
+    <div class="acts">
+      <a class="act a1" href="#/nuevo"><span class="ic">${icon('plus')}</span><div><b>Nuevo envío</b><small>${alm ? 'Crear e imprimir etiqueta' : 'Te damos un código de seguimiento'}</small></div></a>
+      <a class="act a2" href="#/escanear"><span class="ic">${icon(alm ? 'scan' : 'search')}</span><div><b>${alm ? 'Escanear' : 'Consultar'}</b><small>${alm ? 'Actualizar un paquete' : 'Escanea o escribe el código'}</small></div></a>
+    </div>
+    ${alm ? '<div id="stats" class="stats"></div>' : ''}
+    <div class="card"><div class="card-t">Cómo funciona</div>
+      <div class="how" style="grid-template-columns:repeat(${pasos.length},1fr)">
+        ${pasos.map(([ic,t,d,c]) => `<div><span class="d" style="background:${c}">${icon(ic)}</span><b>${t}</b>${d}</div>`).join('')}
+      </div>
+    </div>
+    <div class="card-t" style="margin:22px 0 10px">${alm ? 'Envíos en curso' : 'Mis envíos en curso'} <a href="#/${alm ? 'envios' : 'mis'}" style="margin-left:auto;font-size:14px;text-decoration:none">Ver todos</a></div>
+    <div id="rec"><div class="empty">Cargando…</div></div>`;
+  if(!alm){
+    const ids = misIds();
+    if(!ids.length){ $('#rec').innerHTML = `<div class="empty"><div class="ic">${icon('package')}</div>Aún no tienes envíos.<br>Crea uno o consulta un código.</div>`; return; }
+    unsubs.push(Store.watch(ids, l => {
+      const act = l.filter(e => e.estado !== 'entregado').sort(porActividad).slice(0, 5);
+      $('#rec').innerHTML = act.length ? act.map(itemHTML).join('') : `<div class="empty"><div class="ic">${icon('check')}</div>Todos tus envíos están entregados.</div>`;
+    }));
+    return;
+  }
+  let todos; try{ todos = await Store.list(); }catch(err){ $('#rec').innerHTML = `<div class="card">Error al cargar: ${esc(err.message)}</div>`; return; }
+  const n = k => todos.filter(e => e.estado === k).length;
+  const urg = todos.filter(e => e.prioridad === 'urgente' && e.estado !== 'entregado').length;
+  $('#stats').innerHTML = [['creado','Por recoger',n('creado'),col('creado')],['transito','En tránsito',n('transito'),col('transito')],['recibido','En destino',n('recibido'),col('recibido')],['urgentes','Urgentes',urg,'var(--urg)']]
+    .map(([k,l,v,c]) => `<button class="stat" data-k="${k}" style="--c:${c}"><b>${v}</b><span>${l}</span></button>`).join('');
+  document.querySelectorAll('.stat').forEach(b => b.onclick = () => { filtro.estado = b.dataset.k; location.hash = '#/envios'; });
+  const act = todos.filter(e => e.estado !== 'entregado').slice(0, 5);
+  $('#rec').innerHTML = act.length ? act.map(itemHTML).join('')
+    : `<div class="empty"><div class="ic">${icon('package')}</div>No hay envíos en curso.</div>`;
+}
+
+/* ===== Vista: mis envíos ===== */
+function vMis(){
+  limpiar();
+  $('#app').innerHTML = `<div style="display:flex;align-items:center;gap:10px"><div class="h1" style="flex:1">Mis envíos</div>${Store === Cloud ? '<span class="live">En directo</span>' : ''}</div>
+    <p class="sub">Los que has creado o añadido. El estado se actualiza solo.</p>
+    <div id="lista"><div class="empty">Cargando…</div></div><div class="btns" id="mis-acc" style="margin-top:6px"></div>`;
+  const ids = misIds();
+  if(!ids.length){ $('#lista').innerHTML = `<div class="empty"><div class="ic">${icon('star')}</div>Aún no tienes envíos aquí.<br>Los que crees aparecerán solos. Para seguir uno que te envían, ábrelo y pulsa «Añadir a Mis envíos».<br><br><div class="btns" style="justify-content:center"><a class="btn" href="#/nuevo">${icon('plus')} Nuevo envío</a><a class="btn sec" href="#/escanear">${icon('search')} Consultar código</a></div></div>`; return; }
+  unsubs.push(Store.watch(ids, l => {
+    l.sort(porActividad);
+    $('#lista').innerHTML = l.length ? l.map(itemHTML).join('') : `<div class="empty">No se encuentran tus envíos${Store === Local ? ' en este dispositivo' : ''}.</div>`;
+    const ent = l.filter(e => e.estado === 'entregado');
+    $('#mis-acc').innerHTML = ent.length ? `<button class="btn ghost" id="qe">Quitar los entregados (${ent.length})</button>` : '';
+    if(ent.length) $('#qe').onclick = () => { ent.forEach(e => dejar(e.id)); vMis(); };
+  }));
+}
+
+/* ===== Vista: nuevo envío ===== */
+function vNuevo(){
+  const last = LS.get('env_last_origen', {});
+  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  const dl = `<datalist id="edifs">${cfg.edificios.map(e => `<option value="${esc(e)}">`).join('')}</datalist><datalist id="sedes">${(cfg.sedes || []).map(e => `<option value="${esc(e)}">`).join('')}</datalist>`;
+  const tipos = ['Documentos','Material','Muestras','Herramienta','Repuesto','Otro'];
+  $('#app').innerHTML = `${dl}
+  <div class="h1">Nuevo envío</div><p class="sub">Rellena los 3 apartados y genera la etiqueta.</p>
+  <form id="f" autocomplete="off">
+    <div class="card"><div class="card-t"><span class="num">1</span>¿Desde dónde sale?</div>
+      <div class="f">
+        <div><label class="l">Sede</label><input name="o_se" list="sedes" required value="${esc(last.sede)}" placeholder="Zamudio"></div>
+        <div><label class="l">Edificio</label><input name="o_ed" list="edifs" value="${esc(last.edificio)}" placeholder="106"></div>
+        <div class="s2"><label class="l">Planta <i>(opcional)</i></label><input name="o_pl" value="${esc(last.planta)}"></div>
+        <div class="s4"><label class="l">Quién lo envía</label><input name="o_pe" required value="${esc(last.persona || cfg.usuario)}" placeholder="Nombre y apellido"></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-t"><span class="num">2</span>¿Para quién es?</div>
+      <div class="f">
+        <div><label class="l">Sede</label><input name="d_se" list="sedes" required placeholder="Ortuella"></div>
+        <div><label class="l">Edificio</label><input name="d_ed" list="edifs" placeholder="Ballonti"></div>
+        <div class="s2"><label class="l">Planta <i>(opcional)</i></label><input name="d_pl"></div>
+        <div class="s4"><label class="l">Quién lo recibe</label><input name="d_pe" required placeholder="Nombre y apellido"></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-t"><span class="num">3</span>¿Qué envías?</div>
+      <label class="l">Tipo</label>
+      <div class="pills" style="margin-bottom:16px">${tipos.map((t,i) => `<label class="pill"><input type="radio" name="tipo" value="${t}" ${i === 0 ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div>
+      <div class="f" style="margin-bottom:16px">
+        <div class="s2" style="grid-column:span 3"><label class="l">Descripción <i>(opcional)</i></label><input name="desc" placeholder="Ej.: contratos firmados, 2 tarjetas…"></div>
+        <div><label class="l">Bultos</label><div class="stepperN"><button type="button" data-d="-1">−</button><input name="bultos" type="number" min="1" value="1" inputmode="numeric"><button type="button" data-d="1">+</button></div></div>
+      </div>
+      <label class="l">Prioridad</label>
+      <div class="prio" style="margin-bottom:12px">
+        <label><input type="radio" name="prio" value="normal" checked><span>${icon('clock')} Normal</span></label>
+        <label><input type="radio" name="prio" value="urgente"><span>${icon('flame')} Urgente</span></label>
+      </div>
+      <details class="more"><summary>Cambiar fecha y hora</summary><div style="margin-top:10px"><input name="fecha" type="datetime-local" value="${now.toISOString().slice(0,16)}"></div></details>
+    </div>
+    <div class="sticky-go"><button class="btn big" id="go">${icon('printer')} Generar etiqueta</button></div>
+  </form>`;
+  document.querySelectorAll('.stepperN button').forEach(b => b.onclick = () => { const i = b.parentNode.querySelector('input'); i.value = Math.max(1, (Number(i.value) || 1) + Number(b.dataset.d)); });
+  $('#f').onsubmit = async ev => {
+    ev.preventDefault(); const b = $('#go'); b.disabled = true; b.textContent = 'Generando…';
+    const f = Object.fromEntries(new FormData(ev.target));
+    try{
+      const id = await Store.nextId(); const ts = Date.now();
+      const e = {
+        id, estado:'creado', prioridad:f.prio, creado:ts, actualizado:ts,
+        fecha: f.fecha ? new Date(f.fecha).getTime() : ts,
+        origen:{ sede:f.o_se.trim(), edificio:f.o_ed.trim(), planta:f.o_pl.trim(), persona:f.o_pe.trim() },
+        destino:{ sede:f.d_se.trim(), edificio:f.d_ed.trim(), planta:f.d_pl.trim(), persona:f.d_pe.trim() },
+        tipo:f.tipo, descripcion:f.desc.trim(), bultos:Number(f.bultos) || 1,
+        historial:[{ estado:'creado', ts, por:f.o_pe.trim(), lugar:[f.o_se.trim(), f.o_ed.trim()].filter(Boolean).join(' · ') }]
+      };
+      await Store.save(e);
+      seguir(id);
+      LS.set('env_last_origen', e.origen);
+      location.hash = '#/envio/' + encodeURIComponent(id) + '/nuevo';
+    }catch(err){ alert('No se pudo crear el envío: ' + err.message); b.disabled = false; b.innerHTML = icon('printer') + ' Generar etiqueta'; }
+  };
+}
+
+/* ===== Etiqueta ===== */
+function qrSvg(text){ const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({cellSize:4, margin:0, scalable:true}); }
+function etiquetaHTML(e){
+  return `<div class="etq">
+    <div class="etq-qr">${qrSvg(urlEnvio(e.id))}<div class="cap">Escanea para ver<br>o actualizar el estado</div></div>
+    <div class="etq-info">
+      <div class="etq-emp">${esc(cfg.empresa)} · Envío interno</div>
+      <div class="etq-id">${esc(e.id)}</div>
+      ${e.prioridad === 'urgente' ? '<div class="etq-urg">URGENTE</div>' : ''}
+      <div class="etq-l">PARA</div>
+      <div class="etq-dest">${esc(e.destino.persona)}<br>${esc(lugar(e.destino))}</div>
+      <div class="etq-l">DE</div>
+      <div>${esc(e.origen.persona)} · ${esc(lugar(e.origen))}</div>
+      <div class="etq-desc">${esc(e.tipo)}${e.descripcion ? ' – ' + esc(e.descripcion) : ''} · ${e.bultos} bulto${e.bultos > 1 ? 's' : ''} · ${fmt(e.fecha)}</div>
+    </div></div>`;
+}
+function imprimir(e){ $('#etiqueta-print').innerHTML = etiquetaHTML(e); setTimeout(() => window.print(), 150); }
+
+/* ===== Vista: ficha del envío ===== */
+function mailAviso(e){
+  const u = ultimo(e, 'recibido');
+  const s = `Envío interno ${e.id} recibido en ${u.lugar || donde(e.destino)}`;
+  const b = `Hola ${e.destino.persona},\n\nTienes un envío interno esperándote.\n\nID: ${e.id}\nDe: ${e.origen.persona} (${lugar(e.origen)})\nContenido: ${e.tipo}${e.descripcion ? ' – ' + e.descripcion : ''}\nRecibido en: ${u.lugar || donde(e.destino)} a las ${hora(u.ts)}\n\nVer estado: ${urlEnvio(e.id)}\n`;
+  return `mailto:${encodeURIComponent(e.destino.email)}?subject=${encodeURIComponent(s)}&body=${encodeURIComponent(b)}`;
+}
+async function vFicha(id, nuevo){
+  limpiar();
+  $('#app').innerHTML = '<div class="empty">Cargando…</div>';
+  let e; try{ e = await Store.get(id); }catch(err){ $('#app').innerHTML = `<div class="card">Error: ${esc(err.message)}</div>`; return; }
+  if(!e){ $('#app').innerHTML = `<div class="empty"><div class="ic">${icon('alert')}</div><b style="color:var(--ink);font-size:18px">No encontrado</b><p>No existe el envío <b>${esc(id)}</b>${Store === Local ? ' en este dispositivo.<br>Estás en modo «Solo este equipo».' : '.'}</p><a class="btn sec" href="#/escanear">Probar otro código</a></div>`; return; }
+  const nx = ESTADOS[e.estado].next, dest = e.destino, idx = ORDEN.indexOf(e.estado);
+  const alm = esAlmacen();
+  let accion = '';
+  if(nx && !alm){
+    accion = `<div class="card info-card"><span class="ic">${icon('clock')}</span><div><b>Siguiente paso: ${PASOS[nx].titulo.toLowerCase()}</b><p class="muted" style="margin:2px 0 0">Lo actualiza el almacén al escanear el paquete.${Store === Cloud ? ' Esta página se actualiza sola.' : ''}</p></div></div>`;
+  } else if(nx){
+    const P = PASOS[nx];
+    accion = `<div class="card next-card" style="--c:${col(nx)}">
+      <div class="next-head"><span class="next-ic">${icon(ESTADOS[nx].icon)}</span><div><small>Paso ${idx + 2} de 4</small><b>${P.titulo}</b><p>${esc(P.texto(e))}</p></div></div>
+      <div class="fields">
+        <div><label class="l">Tu nombre</label><input id="a-por" value="${esc(cfg.usuario)}" placeholder="Nombre y apellido"></div>
+        ${nx === 'recibido' ? `<div><label class="l">Dónde se recibe</label><input id="a-lugar" value="${esc(donde(dest))}"></div>` : ''}
+        ${nx === 'entregado' ? `<div><label class="l">Lo recoge</label><input id="a-rec" value="${esc(dest.persona)}"></div>
+          <div><label class="l">Firma <i>(opcional)</i></label><div class="sig-w"><canvas class="sig" id="sig"></canvas><span class="ph" id="sig-ph">Firma aquí con el dedo</span><button class="btn ghost" type="button" id="sig-clr">Borrar</button></div></div>` : ''}
+        <details class="more"><summary>Añadir una nota</summary><div style="margin-top:10px"><input id="a-nota" placeholder="Ej.: caja algo dañada, dejado en conserjería…"></div></details>
+      </div>
+      <button class="btn big" id="a-go">${icon('check')} ${P.boton}</button>
+    </div>`;
+  } else {
+    const u = ultimo(e, 'entregado');
+    accion = `<div class="card done-card"><div class="ic">${icon('check')}</div><b style="font-size:20px">Envío completado</b><p style="margin:4px 0 0;opacity:.9">Entregado a ${esc(u.receptor || dest.persona)} · ${fmt(u.ts)}</p></div>`;
+  }
+  const aviso = alm && e.estado === 'recibido' && dest.email
+    ? `<div class="card"><div class="card-t">${icon('mail')} Avisar a ${esc(dest.persona)}</div><p class="muted" style="margin:-6px 0 12px">Se abrirá tu correo con el aviso ya escrito.</p><a class="btn sec" href="${mailAviso(e)}">${icon('mail')} Enviar aviso</a></div>` : '';
+  const hist = e.historial.slice().reverse().map(h => `<li style="--c:${col(h.estado)}"><span class="d">${icon(ESTADOS[h.estado].icon)}</span><div>
+      <b>${esc(h.estado === 'creado' ? 'Envío creado' : ESTADOS[h.estado].paso)}</b> <span class="t">· ${fmt(h.ts)}</span>
+      <div class="t">${h.estado === 'creado' ? 'Por' : 'Escaneado por'} ${esc(h.por)}${h.lugar ? ' · ' + esc(h.lugar) : ''}</div>
+      ${h.receptor ? `<div class="t">Lo recogió <b style="color:var(--ink);font-size:13px">${esc(h.receptor)}</b></div>` : ''}
+      ${h.nota ? `<div class="t">“${esc(h.nota)}”</div>` : ''}
+      ${h.firma ? `<img src="${h.firma}" alt="Firma">` : ''}</div></li>`).join('');
+  const etqOpen = nuevo || e.estado === 'creado';
+  $('#app').innerHTML = `
+    <a class="back" href="#/${alm ? 'envios' : 'mis'}">${icon('back')} ${alm ? 'Envíos' : 'Mis envíos'}</a>
+    ${nuevo ? (alm ? `<div class="ok-banner"><span class="ic">${icon('check')}</span><div>Envío creado. Imprime la etiqueta y pégala en el paquete.</div></div>`
+      : `<div class="card created"><div class="h"><span>${icon('check')}</span>Envío creado</div>
+          <p style="margin:12px 0 0">Tu código de seguimiento:</p><div class="code-big">${esc(e.id)}</div>
+          <p style="margin:0;font-size:14px">Apúntalo en el paquete (o imprime la etiqueta) y bájalo al almacén. Puedes seguirlo en <a href="#/mis">Mis envíos</a>.</p></div>`) : ''}
+    <div class="card hero" style="--c:${col(e.estado)}">
+      <div class="hero-top"><span class="idm">${esc(e.id)}</span><span style="display:flex;gap:6px">${urgB(e)}${badge(e)}</span></div>
+      <div class="frase">${esc(frase(e))}</div>
+      ${stepper(e)}
+      <div class="route">
+        <div><small>De</small><b>${esc(donde(e.origen))}</b><span>${esc(e.origen.persona)}</span></div>
+        <span class="arr">${icon('arrow')}</span>
+        <div><small>Para</small><b>${esc(donde(dest))}</b><span>${esc(dest.persona)}</span></div>
+      </div>
+      <div class="follow"><button class="btn ghost" id="b-follow"></button></div>
+    </div>
+    ${nuevo ? '' : accion}
+    <div class="card"><details class="box" ${etqOpen ? 'open' : ''}><summary>Etiqueta</summary>
+      <div class="etq-wrap">${etiquetaHTML(e)}</div>
+      <div class="btns" style="margin-top:14px"><button class="btn" id="b-print">${icon('printer')} Imprimir</button><button class="btn sec" id="b-copy">${icon('link')} Copiar enlace</button></div>
+      ${urlOk() ? '' : `<div class="warn">${icon('alert')}<div>Estás en una vista previa, no en la web publicada: este QR no funcionará y puede que no se pueda imprimir. Publica la app y ábrela en el navegador, o pon su dirección en Ajustes.</div></div>`}
+    </details></div>
+    ${nuevo ? accion : ''}
+    ${aviso}
+    <div class="card"><div class="card-t">Historial</div><ul class="tl">${hist}</ul></div>
+    <div class="card"><details class="box"><summary>Detalles</summary><dl class="kv">
+      <dt>Origen</dt><dd>${esc(lugar(e.origen))}<br><span class="muted">${esc(e.origen.persona)}</span></dd>
+      <dt>Destino</dt><dd>${esc(lugar(dest))}<br><span class="muted">${esc(dest.persona)}${dest.email ? ' · ' + esc(dest.email) : ''}</span></dd>
+      <dt>Contenido</dt><dd>${esc(e.tipo)}${e.descripcion ? ' – ' + esc(e.descripcion) : ''}</dd>
+      <dt>Bultos</dt><dd>${e.bultos}</dd>
+      <dt>Prioridad</dt><dd>${e.prioridad === 'urgente' ? 'Urgente' : 'Normal'}</dd>
+      <dt>Fecha</dt><dd>${fmt(e.fecha)}</dd>
+    </dl></details></div>`;
+  $('#b-print').onclick = () => imprimir(e);
+  const pintaFollow = () => { const s = sigo(e.id), b = $('#b-follow'); b.className = 'btn ' + (s ? 'sec on-star' : 'ghost'); b.innerHTML = icon('star') + (s ? ' En Mis envíos' : ' Añadir a Mis envíos'); };
+  pintaFollow();
+  $('#b-follow').onclick = () => { if(sigo(e.id)){ dejar(e.id); toast('Quitado de Mis envíos'); } else { seguir(e.id); toast('Añadido a Mis envíos'); } pintaFollow(); };
+  if(!alm) unsubs.push(Store.watch([e.id], l => { if(l[0] && l[0].actualizado !== e.actualizado){ toast('Estado actualizado: ' + ESTADOS[l[0].estado].label); vFicha(e.id); } }));
+  $('#b-copy').onclick = async () => { try{ await navigator.clipboard.writeText(urlEnvio(e.id)); toast('Enlace copiado'); }catch(_){ prompt('Copia el enlace:', urlEnvio(e.id)); } };
+  if(nx && alm){
+    const sig = nx === 'entregado' ? firmaPad($('#sig')) : null;
+    if(sig) $('#sig-clr').onclick = () => { sig.clear(); $('#sig-ph').style.display = ''; };
+    $('#a-go').onclick = async () => {
+      const por = $('#a-por').value.trim();
+      if(!por){ toast('Escribe tu nombre para registrar quién escanea'); $('#a-por').focus(); return; }
+      const ev = { estado:nx, ts:Date.now(), por, nota:$('#a-nota').value.trim() };
+      if(nx === 'transito') ev.lugar = donde(e.origen);
+      if(nx === 'recibido') ev.lugar = $('#a-lugar').value.trim() || donde(dest);
+      if(nx === 'entregado'){
+        ev.receptor = $('#a-rec').value.trim();
+        if(!ev.receptor){ toast('Indica quién recoge el paquete'); return; }
+        ev.lugar = donde(dest);
+        if(sig.drawn()) ev.firma = sig.data();
+      }
+      cfg.usuario = por; saveCfg();
+      const b = $('#a-go'); b.disabled = true; b.textContent = 'Guardando…';
+      try{
+        await Store.update(e.id, cur => {
+          if(cur.estado !== e.estado) throw new Error('Otra persona ya actualizó este envío (' + ESTADOS[cur.estado].label + ').');
+          cur.historial.push(ev); cur.estado = nx; cur.actualizado = ev.ts; return cur;
+        });
+        if(navigator.vibrate) navigator.vibrate(60);
+        toast('✓ ' + ESTADOS[nx].paso);
+      }catch(err){ alert(err.message); }
+      vFicha(e.id);
+    };
+  }
+}
+function firmaPad(c){
+  const W = 600, H = 200; c.width = W; c.height = H;
+  const x = c.getContext('2d'); x.lineWidth = 3; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#0f172a';
+  let on = false, drawn = false;
+  const p = ev => { const r = c.getBoundingClientRect(); return [(ev.clientX - r.left) * W / r.width, (ev.clientY - r.top) * H / r.height]; };
+  c.onpointerdown = ev => { on = true; c.setPointerCapture(ev.pointerId); x.beginPath(); x.moveTo(...p(ev)); const ph = $('#sig-ph'); if(ph) ph.style.display = 'none'; };
+  c.onpointermove = ev => { if(!on) return; x.lineTo(...p(ev)); x.stroke(); drawn = true; };
+  c.onpointerup = c.onpointercancel = () => on = false;
+  return { clear(){ x.clearRect(0,0,W,H); drawn = false; }, drawn: () => drawn, data: () => c.toDataURL('image/png') };
+}
+
+/* ===== Vista: lista de envíos ===== */
+async function vLista(){
+  limpiar();
+  $('#app').innerHTML = '<div class="empty">Cargando envíos…</div>';
+  let todos; try{ todos = await Store.list(); }catch(err){ $('#app').innerHTML = `<div class="card">Error al cargar: ${esc(err.message)}</div>`; return; }
+  const cnt = k => k === 'todos' ? todos.length : k === 'activos' ? todos.filter(e => e.estado !== 'entregado').length : k === 'urgentes' ? todos.filter(e => e.prioridad === 'urgente' && e.estado !== 'entregado').length : todos.filter(e => e.estado === k).length;
+  const chips = [['activos','En curso'],['urgentes','Urgentes'],['creado','Por recoger'],['transito','En tránsito'],['recibido','En destino'],['entregado','Entregados'],['todos','Todos']];
+  $('#app').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px"><div class="h1" style="flex:1">Envíos</div><button class="btn ghost" id="rf" title="Actualizar" style="padding:10px">${icon('refresh')}</button></div>
+    <p class="sub">Busca un envío o filtra por estado.</p>
+    <div class="search">${icon('search')}<input id="q" type="search" placeholder="ID, persona, sede, edificio…" value="${esc(filtro.q)}"></div>
+    <div class="chips">${chips.map(([k,l]) => `<button class="chip ${filtro.estado === k ? 'on' : ''}" data-k="${k}">${l}<i>${cnt(k)}</i></button>`).join('')}</div>
+    <details class="more" style="margin-bottom:12px"><summary>Filtrar por fecha</summary>
+      <div class="grid2" style="margin-top:10px"><div><label class="l">Desde</label><input type="date" id="d1" value="${filtro.desde}"></div><div><label class="l">Hasta</label><input type="date" id="d2" value="${filtro.hasta}"></div></div>
+    </details>
+    <div id="lista"></div>
+    <div class="btns" style="margin-top:6px"><button class="btn ghost" id="csv">${icon('download')} Exportar a Excel (CSV)</button></div>`;
+  const pinta = () => {
+    const q = filtro.q.toLowerCase().trim();
+    const d1 = filtro.desde ? new Date(filtro.desde + 'T00:00').getTime() : 0;
+    const d2 = filtro.hasta ? new Date(filtro.hasta + 'T23:59:59').getTime() : Infinity;
+    const l = todos.filter(e => {
+      if(filtro.estado === 'activos' && e.estado === 'entregado') return false;
+      if(filtro.estado === 'urgentes' && !(e.prioridad === 'urgente' && e.estado !== 'entregado')) return false;
+      if(ORDEN.includes(filtro.estado) && e.estado !== filtro.estado) return false;
+      if(e.fecha < d1 || e.fecha > d2) return false;
+      if(q){ const t = [e.id, e.origen.persona, e.origen.sede, e.origen.edificio, e.destino.persona, e.destino.sede, e.destino.edificio, e.tipo, e.descripcion, ...e.historial.map(h => h.por + ' ' + (h.receptor || ''))].join(' ').toLowerCase(); if(!t.includes(q)) return false; }
+      return true;
+    }).sort((a,b) => (b.prioridad === 'urgente' && b.estado !== 'entregado') - (a.prioridad === 'urgente' && a.estado !== 'entregado') || b.creado - a.creado);
+    window._lista = l;
+    $('#lista').innerHTML = l.length ? l.map(itemHTML).join('')
+      : `<div class="empty"><div class="ic">${icon('package')}</div>No hay envíos con este filtro.<br><br><a class="btn" href="#/nuevo">${icon('plus')} Crear envío</a></div>`;
+  };
+  document.querySelectorAll('.chip').forEach(c => c.onclick = () => { filtro.estado = c.dataset.k; document.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === c)); pinta(); });
+  $('#q').oninput = ev => { filtro.q = ev.target.value; pinta(); };
+  $('#d1').onchange = ev => { filtro.desde = ev.target.value; pinta(); };
+  $('#d2').onchange = ev => { filtro.hasta = ev.target.value; pinta(); };
+  $('#rf').onclick = vLista;
+  $('#csv').onclick = () => exportCSV(window._lista || []);
+  pinta();
+}
+function exportCSV(l){
+  const f = ts => ts ? fmt(ts) : '';
+  const cols = ['ID','Estado','Prioridad','Fecha','Origen sede','Origen edificio','Origen planta','Envía','Destino sede','Destino edificio','Destino planta','Recibe','Tipo','Descripción','Bultos','Recogido','Recogido por','Recibido','Recibido por','Entregado','Entregado a'];
+  const rows = l.map(e => { const t = ultimo(e,'transito'), r = ultimo(e,'recibido'), d = ultimo(e,'entregado');
+    return [e.id, ESTADOS[e.estado].label, e.prioridad, f(e.fecha), e.origen.sede || '', e.origen.edificio, e.origen.planta, e.origen.persona, e.destino.sede || '', e.destino.edificio, e.destino.planta, e.destino.persona, e.tipo, e.descripcion, e.bultos, f(t.ts), t.por || '', f(r.ts), r.por || '', f(d.ts), d.receptor || '']; });
+  const csv = '﻿' + [cols, ...rows].map(r => r.map(v => '"' + String(v ?? '').replace(/"/g,'""') + '"').join(';')).join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  a.download = 'envios-' + new Date().toISOString().slice(0,10) + '.csv'; a.click();
+}
+
+/* ===== Vista: escáner ===== */
+let stream = null, raf = 0;
+function stopScanner(){ cancelAnimationFrame(raf); if(stream){ stream.getTracks().forEach(t => t.stop()); stream = null; } }
+function idDesde(txt){
+  try{ const u = new URL(txt); const v = u.searchParams.get('envio'); if(v) return v; }catch(_){}
+  const m = String(txt).toUpperCase().match(/ENV-\d{4}-\d{6}/); return m ? m[0] : null;
+}
+function vScan(){
+  const alm = esAlmacen();
+  $('#app').innerHTML = `<div class="h1">${alm ? 'Escanear' : 'Consultar envío'}</div><p class="sub">${alm ? 'Apunta al QR de la etiqueta.' : 'Escanea el QR o escribe el código de seguimiento.'}</p>
+    <div class="scan"><video id="v" playsinline muted></video><div class="frame"></div><div class="line"></div><div class="st" id="st">Iniciando cámara…</div></div>
+    <div class="card"><label class="l">¿No se lee? Escribe el número del envío</label>
+      <div class="row-in"><input id="mid" placeholder="ENV-${new Date().getFullYear()}-000123" autocapitalize="characters"><button class="btn" id="mgo">${icon('arrow')}</button></div>
+      <p class="muted" style="margin:12px 0 0">También puedes escanear con la cámara normal del móvil, sin abrir esta pantalla.</p></div>`;
+  $('#mgo').onclick = () => { const v = $('#mid').value.trim(); const id = idDesde(v) || v.toUpperCase(); if(id) location.hash = '#/envio/' + encodeURIComponent(id); };
+  $('#mid').onkeydown = ev => { if(ev.key === 'Enter') $('#mgo').click(); };
+  if(!navigator.mediaDevices?.getUserMedia){ $('#st').textContent = 'La cámara no está disponible aquí (hace falta https).'; return; }
+  navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } }).then(s => {
+    stream = s; const v = $('#v'); if(!v){ stopScanner(); return; }
+    v.srcObject = s; v.play(); $('#st').textContent = 'Buscando código QR…';
+    const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently:true });
+    const tick = () => {
+      if(!stream) return;
+      if(v.readyState === v.HAVE_ENOUGH_DATA){
+        const w = 480, h = Math.round(v.videoHeight * w / v.videoWidth); cv.width = w; cv.height = h;
+        cx.drawImage(v, 0, 0, w, h);
+        const r = jsQR(cx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts:'dontInvert' });
+        if(r){ const id = idDesde(r.data); if(id){ if(navigator.vibrate) navigator.vibrate(80); stopScanner(); location.hash = '#/envio/' + encodeURIComponent(id); return; } $('#st').textContent = 'Ese QR no es de un envío'; }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    tick();
+  }).catch(err => { $('#st').textContent = 'No se pudo abrir la cámara: ' + err.message; });
+}
+
+/* ===== Vista: ajustes ===== */
+function vAjustes(){
+  limpiar();
+  const alm = esAlmacen(), conPin = !!cfg.pin;
+  const almCard = !conPin ? '' : alm
+    ? `<div class="card"><div class="card-t">${icon('lock')} Modo almacén</div><p class="muted" style="margin:-6px 0 12px">Este dispositivo está en modo almacén: puede cambiar el estado de los envíos y ver todos.</p><button class="btn ghost" id="alm-off">Salir del modo almacén</button></div>`
+    : `<div class="card"><div class="card-t">${icon('lock')} Modo almacén</div><p class="muted" style="margin:-6px 0 12px">Solo para el personal de almacén y recepción.</p><div class="row-in"><input id="alm-pin" type="password" inputmode="numeric" placeholder="PIN" style="text-transform:none"><button class="btn" id="alm-on">Entrar</button></div></div>`;
+  $('#app').innerHTML = `<div class="h1">Ajustes</div><p class="sub">Se guardan en este dispositivo.</p>
+  <div class="card"><div class="card-t">Tú</div>
+    <div class="fields" style="margin:0">
+      <div><label class="l">Tu nombre <i>(se propone al crear y escanear)</i></label><input id="s-usr" value="${esc(cfg.usuario)}" placeholder="Nombre y apellido"></div>
+      <div><label class="l">Tamaño de impresión de la etiqueta</label><select id="s-et"><option value="100x70" ${cfg.etiqueta !== 'A4' ? 'selected' : ''}>Etiqueta adhesiva 100 × 70 mm</option><option value="A4" ${cfg.etiqueta === 'A4' ? 'selected' : ''}>Folio A4 (para recortar)</option></select></div>
+    </div>
+  </div>
+  ${almCard}
+  ${alm ? `
+  <div class="card"><div class="card-t">Empresa, sedes y edificios</div>
+    <div class="fields" style="margin:0">
+      <div><label class="l">Nombre que sale en la etiqueta</label><input id="s-emp" value="${esc(cfg.empresa)}"${nf('empresa')}></div>
+      <div class="grid2">
+        <div><label class="l">Sedes <i>(una por línea)</i></label><textarea id="s-se"${nf('sedes')}>${esc((cfg.sedes || []).join('\n'))}</textarea></div>
+        <div><label class="l">Edificios <i>(uno por línea)</i></label><textarea id="s-ed"${nf('edificios')}>${esc(cfg.edificios.join('\n'))}</textarea></div>
+      </div>
+    </div>
+  </div>
+  ${fijo('pin') ? '' : `<div class="card"><div class="card-t">PIN del almacén</div>
+    <p class="muted" style="margin:-6px 0 12px">Con PIN, solo los dispositivos en modo almacén pueden cambiar estados; el resto solo crea y consulta. Vacío = cualquiera puede. Para toda la empresa se pone en el archivo (CONFIG_FIJA).</p>
+    <input id="s-pin" value="${esc(cfg.pin)}" inputmode="numeric" placeholder="Sin PIN">
+  </div>`}
+  <div class="card"><div class="card-t">Publicación</div>
+    <label class="l">Dirección de la app <i>(la que llevará el QR)</i></label><input id="s-url"${nf('baseUrl')} value="${esc(cfg.baseUrl)}" placeholder="${esc(webReal() ? location.origin + location.pathname : 'https://ezguum-zuri.github.io/envios/')}">
+    <p class="small" style="margin-top:8px">Si lo dejas vacío se usa la dirección actual.</p>
+  </div>
+  ${fijo('firebase') ? `<div class="card"><div class="card-t">Datos compartidos</div><p class="muted" style="margin:0">Conexión configurada por la empresa. No hay que hacer nada aquí.</p></div>` : `<div class="card"><div class="card-t">Datos compartidos (Firebase)</div>
+    <p class="muted" style="margin:-6px 0 12px">Sin esto, cada dispositivo guarda sus propios envíos. Pega aquí la configuración web de tu proyecto de Firebase (el bloque <code>firebaseConfig = {…}</code>).</p>
+    <textarea id="s-fb" style="min-height:120px;font-family:ui-monospace,monospace;font-size:13px" placeholder='{ apiKey: "...", authDomain: "...", projectId: "...", ... }'>${esc(cfg.firebase)}</textarea>
+  </div>`}` : ''}
+  <div class="sticky-go"><button class="btn big" id="s-save">${icon('check')} Guardar ajustes</button></div>
+  ${alm ? `<div class="card" style="margin-top:14px"><div class="card-t">Copia de seguridad</div>
+    <p class="muted" style="margin:-6px 0 12px">Solo para los envíos guardados en este equipo.</p>
+    <div class="btns"><button class="btn ghost" id="s-exp">${icon('download')} Exportar</button><label class="btn ghost" style="margin:0">Importar<input type="file" id="s-imp" accept=".json" hidden></label></div>
+  </div>` : ''}`;
+  const refresco = () => { pintaModo(); pintaNav('ajustes'); vAjustes(); };
+  if($('#alm-on')){
+    $('#alm-on').onclick = () => { if($('#alm-pin').value.trim() === cfg.pin){ LS.set('env_almacen', cfg.pin); toast('Modo almacén activado'); refresco(); } else { toast('PIN incorrecto'); $('#alm-pin').select(); } };
+    $('#alm-pin').onkeydown = ev => { if(ev.key === 'Enter') $('#alm-on').click(); };
+  }
+  if($('#alm-off')) $('#alm-off').onclick = () => { LS.set('env_almacen', ''); toast('Has salido del modo almacén'); refresco(); };
+  $('#s-save').onclick = () => {
+    const val = id => { const el = $(id); return el && !el.disabled ? el.value.trim() : null; };
+    const fbOld = cfg.firebase;
+    cfg.usuario = val('#s-usr') ?? cfg.usuario;
+    cfg.etiqueta = $('#s-et').value;
+    if(val('#s-emp') !== null) cfg.empresa = val('#s-emp') || 'Envíos internos';
+    if(val('#s-se') !== null) cfg.sedes = val('#s-se').split('\n').map(s => s.trim()).filter(Boolean);
+    if(val('#s-ed') !== null) cfg.edificios = val('#s-ed').split('\n').map(s => s.trim()).filter(Boolean);
+    if(val('#s-url') !== null) cfg.baseUrl = val('#s-url');
+    if(val('#s-pin') !== null){ const np = val('#s-pin'); if(np) LS.set('env_almacen', np); cfg.pin = np; }
+    const fb = val('#s-fb') ?? cfg.firebase;
+    if(fb){ try{ parseFirebase(fb); }catch(err){ alert('La configuración de Firebase no es válida: ' + err.message); return; } }
+    cfg.firebase = fb; Object.assign(cfg, FIJO); saveCfg();
+    if(fb !== fbOld){ location.hash = '#/inicio'; location.reload(); return; }
+    toast('Ajustes guardados'); refresco();
+  };
+  if($('#s-exp')) $('#s-exp').onclick = () => {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ envios:LS.get('env_data',{}), contador:LS.get('env_cnt',{}) }, null, 1)], {type:'application/json'}));
+    a.download = 'envios-backup.json'; a.click();
+  };
+  if($('#s-imp')) $('#s-imp').onchange = async ev => {
+    try{ const d = JSON.parse(await ev.target.files[0].text()); LS.set('env_data', Object.assign(LS.get('env_data',{}), d.envios || {}));
+      const c = LS.get('env_cnt',{}); for(const y in d.contador || {}) c[y] = Math.max(c[y] || 0, d.contador[y]); LS.set('env_cnt', c); toast('Datos importados'); }
+    catch(err){ alert('Archivo no válido: ' + err.message); }
+  };
+}
+
+/* ===== Arranque ===== */
+(async () => { await initStore(); pintaModo(); route(); })();
+</script>
+</body>
+</html>
