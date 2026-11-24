@@ -494,6 +494,15 @@ function route(){
   else vInicio();
 }
 window.addEventListener('hashchange', route);
+/* Pistola lectora: escribe el código muy rápido y termina con Enter. Funciona en cualquier pantalla. */
+let kb = '', kbT = 0;
+document.addEventListener('keydown', ev => {
+  const t = ev.target;
+  if(t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+  const now = Date.now(); if(now - kbT > 100) kb = ''; kbT = now;
+  if(ev.key === 'Enter'){ const id = kb.length >= 10 ? idDesde(kb) : null; kb = ''; if(id){ ev.preventDefault(); stopScanner(); abrirEnvio(id); } return; }
+  if(ev.key.length === 1) kb += ev.key;
+});
 
 /* ===== Componentes ===== */
 const ultimo = (e, est) => e.historial.filter(h => h.estado === est).pop() || {};
@@ -847,21 +856,25 @@ function exportCSV(l){
 let stream = null, raf = 0;
 function stopScanner(){ cancelAnimationFrame(raf); if(stream){ stream.getTracks().forEach(t => t.stop()); stream = null; } }
 function idDesde(txt){
-  try{ const u = new URL(txt); const v = u.searchParams.get('envio'); if(v) return v; }catch(_){}
-  const m = String(txt).toUpperCase().match(/ENV-\d{4}-\d{6}/); return m ? m[0] : null;
+  const t = String(txt || '').trim();
+  try{ const u = new URL(t); const v = u.searchParams.get('envio'); if(v) return v.toUpperCase(); }catch(_){}
+  // Tolerante con pistolas configuradas con otro teclado (el guion puede llegar como ' o ?)
+  const m = t.toUpperCase().match(/ENV\W?(\d{4})\W?(\d{6})/); return m ? `ENV-${m[1]}-${m[2]}` : null;
 }
+function abrirEnvio(id){ const h = '#/envio/' + encodeURIComponent(id); if(location.hash === h) route(); else location.hash = h; }
 function vScan(){
   const alm = esAlmacen();
   $('#app').innerHTML = `<div class="h1">${alm ? 'Escanear' : 'Consultar envío'}</div><p class="sub">${alm ? 'Apunta al QR de la etiqueta.' : 'Escanea el QR o escribe el código de seguimiento.'}</p>
     <div class="scan"><video id="v" playsinline muted></video><div class="frame"></div><div class="line"></div><div class="st" id="st">Iniciando cámara…</div></div>
-    <div class="card"><label class="l">¿No se lee? Escribe el número del envío</label>
+    <div class="card"><label class="l">Escribe el código o usa la pistola lectora</label>
       <div class="row-in"><input id="mid" placeholder="ENV-${new Date().getFullYear()}-000123" autocapitalize="characters"><button class="btn" id="mgo">${icon('arrow')}</button></div>
-      <p class="muted" style="margin:12px 0 0">También puedes escanear con la cámara normal del móvil, sin abrir esta pantalla.</p></div>`;
-  $('#mgo').onclick = () => { const v = $('#mid').value.trim(); const id = idDesde(v) || v.toUpperCase(); if(id) location.hash = '#/envio/' + encodeURIComponent(id); };
+      <p class="muted" style="margin:12px 0 0">Con pistola: dispara al QR y se abre el envío. Funciona en cualquier pantalla de la app. En el móvil también puedes usar la cámara normal.</p></div>`;
+  $('#mgo').onclick = () => { const v = $('#mid').value.trim(); const id = idDesde(v) || v.toUpperCase(); if(id){ stopScanner(); abrirEnvio(id); } };
+  if(!matchMedia('(pointer:coarse)').matches) $('#mid').focus();
   $('#mid').onkeydown = ev => { if(ev.key === 'Enter') $('#mgo').click(); };
   if(!navigator.mediaDevices?.getUserMedia){ $('#st').textContent = 'La cámara no está disponible aquí (hace falta https).'; return; }
   const ok = txt => { const id = idDesde(txt); if(!id){ $('#st').textContent = 'Ese QR no es de un envío'; return false; }
-    if(navigator.vibrate) navigator.vibrate(80); stopScanner(); location.hash = '#/envio/' + encodeURIComponent(id); return true; };
+    if(navigator.vibrate) navigator.vibrate(80); stopScanner(); abrirEnvio(id); return true; };
   navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1920 }, height:{ ideal:1080 } }, audio:false }).then(async s => {
     stream = s; const v = $('#v'); if(!v){ stopScanner(); return; }
     v.setAttribute('playsinline', ''); v.muted = true; v.srcObject = s;
