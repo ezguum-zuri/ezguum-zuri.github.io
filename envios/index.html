@@ -8,6 +8,7 @@
 <title>Envíos internos</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/barcodes/JsBarcode.code128.min.js"></script>
 <style>
 :root{
   --bg:#f5f6fa;--card:#fff;--ink:#0f172a;--mute:#64748b;--line:#e5e7eb;--soft:#f1f5f9;
@@ -254,7 +255,11 @@ details.box[open]>summary{margin-bottom:14px}
 
 /* ---- Etiqueta ---- */
 .etq-wrap{display:flex;justify-content:center;padding:14px;background:var(--soft);border-radius:14px;overflow:auto}
-.etq{width:100mm;height:70mm;background:#fff;color:#000;border:1px solid #000;display:flex;gap:3mm;padding:3mm;font-family:Arial,Helvetica,sans-serif;overflow:hidden;flex:none;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.etq{width:100mm;height:70mm;background:#fff;color:#000;border:1px solid #000;display:flex;flex-direction:column;gap:1.5mm;padding:3mm;font-family:Arial,Helvetica,sans-serif;overflow:hidden;flex:none;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.etq-top{display:flex;gap:3mm;flex:1;min-height:0}
+.etq-bar{height:11mm;flex:none;display:flex;flex-direction:column;align-items:center}
+.etq-bar svg{width:80mm;height:9mm;display:block}
+.etq-bar span{font:700 7pt 'Courier New',monospace;letter-spacing:.15em;margin-top:.3mm}
 .etq-qr{width:40mm;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .etq-qr svg{width:40mm;height:40mm;display:block}
 .etq-qr .cap{font-size:7pt;text-align:center;margin-top:1mm}
@@ -656,10 +661,23 @@ function vNuevo(){
 }
 
 /* ===== Etiqueta ===== */
+function barSvg(text){
+  if(!window.JsBarcode) return '';
+  try{
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    JsBarcode(svg, text, { format:'CODE128', displayValue:false, margin:0, width:2, height:60, background:'#ffffff' });
+    const w = svg.getAttribute('width'), h = svg.getAttribute('height');
+    svg.setAttribute('viewBox', `0 0 ${parseFloat(w)} ${parseFloat(h)}`); svg.removeAttribute('width'); svg.removeAttribute('height'); svg.removeAttribute('style');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    return svg.outerHTML;
+  }catch(_){ return ''; }
+}
+const codBarras = id => id.replace(/-/g, '');   // ENV2026000001: sin guiones, para que cualquier pistola lo escriba bien
 function qrSvg(text){ const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({cellSize:4, margin:12, scalable:true}); }
 function etiquetaHTML(e, n = 1){
-  return `<div class="etq">
-    <div class="etq-qr">${qrSvg(urlEnvio(e.id))}<div class="cap">Escanea para ver<br>o actualizar el estado</div></div>
+  const bar = barSvg(codBarras(e.id));
+  return `<div class="etq"><div class="etq-top">
+    <div class="etq-qr">${qrSvg(urlEnvio(e.id))}<div class="cap">Escanea con el móvil<br>para ver el estado</div></div>
     <div class="etq-info">
       <div class="etq-emp">${esc(cfg.empresa)} · Envío interno</div>
       <div class="etq-idr"><span class="etq-id">${esc(e.id)}</span>${e.bultos > 1 ? `<span class="etq-b">BULTO ${n} DE ${e.bultos}</span>` : ''}</div>
@@ -669,7 +687,8 @@ function etiquetaHTML(e, n = 1){
       <div class="etq-l">DE</div>
       <div>${esc(e.origen.persona)} · ${esc(lugar(e.origen))}</div>
       <div class="etq-desc">${esc(e.tipo)}${e.descripcion ? ' – ' + esc(e.descripcion) : ''} · ${e.bultos} bulto${e.bultos > 1 ? 's' : ''} · ${fmt(e.fecha)}</div>
-    </div></div>`;
+    </div></div>
+    ${bar ? `<div class="etq-bar">${bar}<span>${esc(codBarras(e.id))}</span></div>` : ''}</div>`;
 }
 function imprimir(e){
   const p = $('#etiqueta-print'); p.className = cfg.etiqueta === 'A4' ? 'a4' : '';
