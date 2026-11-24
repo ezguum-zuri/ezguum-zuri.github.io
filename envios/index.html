@@ -300,7 +300,15 @@ const CONFIG_FIJA = {
   edificios: [],   // Ej.: ['106', 'Ballonti']
   pinAlmacen: '',  // PIN del modo almacén. Ej.: '4821'. Con PIN, solo almacén/recepción pueden cambiar estados.
                    // Vacío = cualquiera puede cambiarlos.
-  firebase:  null  // Pegar aquí el objeto firebaseConfig de Firebase. Ej.:
+  firebase:  {     // Proyecto de PRUEBAS (envios-pruebas). La empresa pondrá aquí el suyo.
+    apiKey: "AIzaSyAmYq080wkPXwDZbMKY8aqyAkEsfp5ZdOQ",
+    authDomain: "envios-pruebas.firebaseapp.com",
+    projectId: "envios-pruebas",
+    storageBucket: "envios-pruebas.firebasestorage.app",
+    messagingSenderId: "50762282732",
+    appId: "1:50762282732:web:477ec2fd3faec1ad0f57c9"
+  }
+                   // Pegar aquí el objeto firebaseConfig de Firebase. Ej.:
                    // { apiKey: "...", authDomain: "...", projectId: "...", storageBucket: "...", messagingSenderId: "...", appId: "..." }
 };
 /* ===================================================================== */
