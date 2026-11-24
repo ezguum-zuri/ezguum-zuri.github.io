@@ -647,7 +647,7 @@ function vNuevo(){
 }
 
 /* ===== Etiqueta ===== */
-function qrSvg(text){ const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({cellSize:4, margin:0, scalable:true}); }
+function qrSvg(text){ const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({cellSize:4, margin:12, scalable:true}); }
 function etiquetaHTML(e, n = 1){
   return `<div class="etq">
     <div class="etq-qr">${qrSvg(urlEnvio(e.id))}<div class="cap">Escanea para ver<br>o actualizar el estado</div></div>
@@ -860,22 +860,38 @@ function vScan(){
   $('#mgo').onclick = () => { const v = $('#mid').value.trim(); const id = idDesde(v) || v.toUpperCase(); if(id) location.hash = '#/envio/' + encodeURIComponent(id); };
   $('#mid').onkeydown = ev => { if(ev.key === 'Enter') $('#mgo').click(); };
   if(!navigator.mediaDevices?.getUserMedia){ $('#st').textContent = 'La cámara no está disponible aquí (hace falta https).'; return; }
-  navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } }).then(s => {
+  const ok = txt => { const id = idDesde(txt); if(!id){ $('#st').textContent = 'Ese QR no es de un envío'; return false; }
+    if(navigator.vibrate) navigator.vibrate(80); stopScanner(); location.hash = '#/envio/' + encodeURIComponent(id); return true; };
+  navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1920 }, height:{ ideal:1080 } }, audio:false }).then(async s => {
     stream = s; const v = $('#v'); if(!v){ stopScanner(); return; }
-    v.srcObject = s; v.play(); $('#st').textContent = 'Buscando código QR…';
+    v.setAttribute('playsinline', ''); v.muted = true; v.srcObject = s;
+    try{ await v.play(); }catch(_){}
+    $('#st').textContent = 'Buscando código QR…';
+    let det = null;
+    if('BarcodeDetector' in window){ try{ const f = await BarcodeDetector.getSupportedFormats(); if(f.includes('qr_code')) det = new BarcodeDetector({ formats:['qr_code'] }); }catch(_){} }
     const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently:true });
-    const tick = () => {
+    let n = 0, busy = false;
+    const tick = async () => {
       if(!stream) return;
-      if(v.readyState === v.HAVE_ENOUGH_DATA){
-        const w = 480, h = Math.round(v.videoHeight * w / v.videoWidth); cv.width = w; cv.height = h;
-        cx.drawImage(v, 0, 0, w, h);
-        const r = jsQR(cx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts:'dontInvert' });
-        if(r){ const id = idDesde(r.data); if(id){ if(navigator.vibrate) navigator.vibrate(80); stopScanner(); location.hash = '#/envio/' + encodeURIComponent(id); return; } $('#st').textContent = 'Ese QR no es de un envío'; }
+      if(!busy && v.readyState >= 2 && v.videoWidth){
+        busy = true;
+        try{
+          if(det){ const r = await det.detect(v); if(r.length && ok(r[0].rawValue)) return; }
+          else if(window.jsQR){
+            const vw = v.videoWidth, vh = v.videoHeight; let sx, sy, sw, sh, w, h;
+            if(n++ % 2 === 0){ const side = Math.min(vw, vh) * .75; sx = (vw - side) / 2; sy = (vh - side) / 2; sw = sh = side; w = h = 640; }  // centro, más ampliado
+            else { sx = 0; sy = 0; sw = vw; sh = vh; w = 800; h = Math.round(vh * w / vw); }                                    // imagen completa
+            cv.width = w; cv.height = h; cx.drawImage(v, sx, sy, sw, sh, 0, 0, w, h);
+            const r = jsQR(cx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts:'attemptBoth' });
+            if(r && ok(r.data)) return;
+          } else { $('#st').textContent = 'No se pudo cargar el lector. Usa la cámara del móvil o escribe el código.'; return; }
+        }catch(_){}
+        busy = false;
       }
       raf = requestAnimationFrame(tick);
     };
     tick();
-  }).catch(err => { $('#st').textContent = 'No se pudo abrir la cámara: ' + err.message; });
+  }).catch(err => { $('#st').textContent = err.name === 'NotAllowedError' ? 'Sin permiso para la cámara. Actívalo en los ajustes del navegador.' : 'No se pudo abrir la cámara: ' + err.message; });
 }
 
 /* ===== Vista: ajustes ===== */
