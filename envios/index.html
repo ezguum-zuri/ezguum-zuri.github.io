@@ -51,7 +51,7 @@ button{font:inherit;color:inherit}
 .nav a.fab.on em{color:var(--pri)}
 @media(min-width:900px){
   body{padding-bottom:30px}
-  .nav{position:sticky;top:61px;bottom:auto;display:flex;justify-content:center;gap:4px;background:transparent;border:0;backdrop-filter:none;padding:10px;max-width:980px;margin:0 auto}
+  .nav{position:sticky;top:61px;bottom:auto;display:flex;justify-content:center;gap:4px;background:var(--bg);border:0;backdrop-filter:none;padding:10px;max-width:none;margin:0}
   .nav a{flex-direction:row;font-size:14px;padding:9px 16px;border-radius:12px;gap:8px;color:var(--mute)}
   .nav a:hover{background:#fff}
   .nav a.on{background:#fff;box-shadow:var(--sh)}
@@ -128,8 +128,8 @@ details.more summary::-webkit-details-marker{display:none}
 .how div{text-align:center;font-size:12px;color:var(--mute);line-height:1.25}
 .how .d{width:44px;height:44px;border-radius:14px;margin:0 auto 8px;display:grid;place-items:center;color:#fff}
 .how b{display:block;color:var(--ink);font-size:13px;margin-bottom:2px}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
-@media(max-width:620px){.stats{grid-template-columns:1fr 1fr}}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:620px){.stats{grid-template-columns:1fr 1fr}.stats .stat:last-child{grid-column:1/-1}}
 .stat{background:#fff;border-radius:16px;padding:14px;box-shadow:var(--sh);border:0;text-align:left;cursor:pointer}
 .stat b{display:block;font-size:28px;font-weight:800;letter-spacing:-.02em;color:var(--c)}
 .stat span{font-size:13px;color:var(--mute);font-weight:600}
@@ -548,6 +548,7 @@ async function vInicio(){
     : [['package','1. Crea el envío','Recibes un código',col('creado')],['truck','2. Bájalo al almacén','Con el código o la etiqueta',col('transito')],['star','3. Síguelo aquí','Sin preguntar a nadie',col('entregado')]];
   $('#app').innerHTML = `
     <div class="h1">${hola}</div><p class="sub">¿Qué quieres hacer?</p>
+    <form class="search" id="fbus" style="margin-bottom:14px">${icon('search')}<input id="bus" type="search" enterkeyhint="search" autocomplete="off" placeholder="${alm ? 'Buscar por código o nombre…' : 'Buscar por código (ej. 15)…'}"></form>
     <div class="acts">
       <a class="act a1" href="#/nuevo"><span class="ic">${icon('plus')}</span><div><b>Nuevo envío</b><small>${alm ? 'Crear e imprimir etiqueta' : 'Te damos un código de seguimiento'}</small></div></a>
       <a class="act a2" href="#/escanear"><span class="ic">${icon(alm ? 'scan' : 'search')}</span><div><b>${alm ? 'Escanear' : 'Consultar'}</b><small>${alm ? 'Actualizar un paquete' : 'Escanea o escribe el código'}</small></div></a>
@@ -560,6 +561,13 @@ async function vInicio(){
     </div>
     <div class="card-t" style="margin:22px 0 10px">${alm ? 'Envíos en curso' : 'Mis envíos en curso'} <a href="#/${alm ? 'envios' : 'mis'}" style="margin-left:auto;font-size:14px;text-decoration:none">Ver todos</a></div>
     <div id="rec"><div class="empty">Cargando…</div></div>`;
+  $('#fbus').onsubmit = ev => {
+    ev.preventDefault(); const v = $('#bus').value.trim(); if(!v) return;
+    const id = idDesde(v) || (/^\d{1,6}$/.test(v) ? fmtId(new Date().getFullYear(), +v) : null);
+    if(id) abrirEnvio(id);
+    else if(alm){ filtro.q = v; filtro.estado = 'todos'; location.hash = '#/envios'; }
+    else toast('Escribe el código del envío, por ejemplo ENV-2026-000015 o solo 15');
+  };
   if(!alm){
     const ids = misIds();
     if(!ids.length){ $('#rec').innerHTML = `<div class="empty"><div class="ic">${icon('package')}</div>Aún no tienes envíos.<br>Crea uno o consulta un código.</div>`; return; }
@@ -572,7 +580,7 @@ async function vInicio(){
   let todos; try{ todos = await Store.list(); }catch(err){ $('#rec').innerHTML = `<div class="card">Error al cargar: ${esc(err.message)}</div>`; return; }
   const n = k => todos.filter(e => e.estado === k).length;
   const urg = todos.filter(e => e.prioridad === 'urgente' && e.estado !== 'entregado').length;
-  $('#stats').innerHTML = [['creado','Por recoger',n('creado'),col('creado')],['transito','En tránsito',n('transito'),col('transito')],['recibido','En destino',n('recibido'),col('recibido')],['urgentes','Urgentes',urg,'var(--urg)']]
+  $('#stats').innerHTML = [['creado','Por recoger',n('creado'),col('creado')],['transito','En tránsito',n('transito'),col('transito')],['recibido','En destino',n('recibido'),col('recibido')],['entregado','Entregados',n('entregado'),col('entregado')],['urgentes','Urgentes',urg,'var(--urg)']]
     .map(([k,l,v,c]) => `<button class="stat" data-k="${k}" style="--c:${c}"><b>${v}</b><span>${l}</span></button>`).join('');
   document.querySelectorAll('.stat').forEach(b => b.onclick = () => { filtro.estado = b.dataset.k; location.hash = '#/envios'; });
   const act = todos.filter(e => e.estado !== 'entregado').slice(0, 5);
@@ -718,9 +726,9 @@ async function vFicha(id, nuevo){
     accion = `<div class="card next-card" style="--c:${col(nx)}">
       <div class="next-head"><span class="next-ic">${icon(ESTADOS[nx].icon)}</span><div><small>Paso ${idx + 2} de 4</small><b>${P.titulo}</b><p>${esc(P.texto(e))}</p></div></div>
       <div class="fields">
-        <div><label class="l">${{ transito:'Quién se lo lleva <i>(el que lo recoge en origen)</i>', recibido:'Quién lo recibe en destino', entregado:'Quién lo entrega' }[nx]}</label><input id="a-por" value="${nx === 'transito' ? '' : esc(cfg.usuario)}" placeholder="Nombre y apellido"></div>
+        <div><label class="l">${{ transito:'Quién se lo lleva <i>(el que lo recoge en origen)</i>', recibido:'Quién lo recibe en destino', entregado:'Quién lo entrega' }[nx]}</label><input id="a-por" value="" placeholder="Nombre y apellido" autocomplete="off"></div>
         ${nx === 'recibido' ? `<div><label class="l">Dónde se recibe</label><input id="a-lugar" value="${esc(donde(dest))}"></div>` : ''}
-        ${nx === 'entregado' ? `<div><label class="l">Lo recoge</label><input id="a-rec" value="${esc(dest.persona)}"></div>
+        ${nx === 'entregado' ? `<div><label class="l">Lo recoge</label><input id="a-rec" value="" placeholder="Ej.: ${esc(dest.persona)}" autocomplete="off"></div>
           <div><label class="l">Firma <i>(opcional)</i></label><div class="sig-w"><canvas class="sig" id="sig"></canvas><span class="ph" id="sig-ph">Firma aquí con el dedo</span><button class="btn ghost" type="button" id="sig-clr">Borrar</button></div></div>` : ''}
         <details class="more"><summary>Añadir una nota</summary><div style="margin-top:10px"><input id="a-nota" placeholder="Ej.: caja algo dañada, dejado en conserjería…"></div></details>
       </div>
@@ -795,7 +803,6 @@ async function vFicha(id, nuevo){
         ev.lugar = donde(dest);
         if(sig.drawn()) ev.firma = sig.data();
       }
-      if(nx !== 'transito'){ cfg.usuario = por; saveCfg(); }
       const b = $('#a-go'); b.disabled = true; b.textContent = 'Guardando…';
       try{
         await Store.update(e.id, cur => {
@@ -878,7 +885,7 @@ function idDesde(txt){
   const t = String(txt || '').trim();
   try{ const u = new URL(t); const v = u.searchParams.get('envio'); if(v) return v.toUpperCase(); }catch(_){}
   // Tolerante con pistolas configuradas con otro teclado (el guion puede llegar como ' o ?)
-  const m = t.toUpperCase().match(/ENV\W?(\d{4})\W?(\d{6})/); return m ? `ENV-${m[1]}-${m[2]}` : null;
+  const m = t.toUpperCase().match(/ENV\W?(\d{4})\W?(\d{1,6})(?!\d)/); return m ? `ENV-${m[1]}-${m[2].padStart(6, '0')}` : null;
 }
 function abrirEnvio(id){ const h = '#/envio/' + encodeURIComponent(id); if(location.hash === h) route(); else location.hash = h; }
 function vScan(){
