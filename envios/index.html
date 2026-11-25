@@ -599,10 +599,10 @@ async function vInicio(){
 function vMis(){
   limpiar();
   $('#app').innerHTML = `<div style="display:flex;align-items:center;gap:10px"><div class="h1" style="flex:1">Mis envíos</div>${Store === Cloud ? '<span class="live">En directo</span>' : ''}</div>
-    <p class="sub">Los que has creado o añadido. El estado se actualiza solo.</p>
+    <p class="sub">Solo tus envíos: los que has pedido tú y los que sigues. El estado se actualiza solo, sin preguntar a nadie.</p>
     <div id="lista"><div class="empty">Cargando…</div></div><div class="btns" id="mis-acc" style="margin-top:6px"></div>`;
   const ids = misIds();
-  if(!ids.length){ $('#lista').innerHTML = `<div class="empty"><div class="ic">${icon('star')}</div>Aún no tienes envíos aquí.<br>Los que crees aparecerán solos. Para seguir uno que te envían, ábrelo y pulsa «Añadir a Mis envíos».<br><br><div class="btns" style="justify-content:center"><a class="btn" href="#/nuevo">${icon('plus')} Nuevo envío</a><a class="btn sec" href="#/escanear">${icon('search')} Consultar código</a></div></div>`; return; }
+  if(!ids.length){ $('#lista').innerHTML = `<div class="empty"><div class="ic">${icon('star')}</div>Aún no tienes envíos aquí.<br>Los que pidas aparecerán solos.<br>Si alguien te envía algo, abre su código o QR y pulsa «Seguir este envío».<br><br><div class="btns" style="justify-content:center"><a class="btn" href="#/nuevo">${icon('plus')} Nuevo envío</a><a class="btn sec" href="#/escanear">${icon('search')} Consultar código</a></div></div>`; return; }
   unsubs.push(Store.watch(ids, l => {
     l.sort(porActividad);
     $('#lista').innerHTML = l.length ? l.map(itemHTML).join('') : `<div class="empty">No se encuentran tus envíos${Store === Local ? ' en este dispositivo' : ''}.</div>`;
@@ -787,7 +787,9 @@ async function vFicha(id, nuevo){
     ${nuevo ? (alm ? `<div class="ok-banner"><span class="ic">${icon('check')}</span><div>Envío creado. Imprime la etiqueta y pégala en el paquete.</div></div>`
       : `<div class="card created"><div class="h"><span>${icon('check')}</span>Envío creado</div>
           <p style="margin:12px 0 0">Tu código de seguimiento:</p><div class="code-big">${esc(e.id)}</div>
-          <p style="margin:0;font-size:14px">Apúntalo en el paquete (o imprime la etiqueta) y bájalo al almacén. Puedes seguirlo en <a href="#/mis">Mis envíos</a>.</p></div>`) : ''}
+          <p style="margin:0 0 10px;font-size:14px">Apúntalo en el paquete (o imprime la etiqueta) y bájalo al almacén.</p>
+          <div style="display:flex;gap:10px;align-items:center;background:#fff;border-radius:12px;padding:10px 12px;font-size:14px;color:var(--ink)"><span style="color:#ca8a04">${icon('star')}</span><div><b>Ya está en «Mis envíos».</b> Ahí verás cuándo sale, cuándo llega y cuándo se entrega.</div></div>
+          <a class="btn" href="#/mis" style="margin-top:10px;width:100%;background:#16a34a">${icon('star')} Ver Mis envíos</a></div>`) : ''}
     <div class="card hero" style="--c:${col(e.estado)}">
       <div class="hero-top"><span class="idm">${esc(e.id)}</span><span style="display:flex;gap:6px">${urgB(e)}${badge(e)}</span></div>
       <div class="frase">${esc(frase(e))}</div>
@@ -797,7 +799,7 @@ async function vFicha(id, nuevo){
         <span class="arr">${icon('arrow')}</span>
         <div><small>Para</small><b>${esc(donde(dest))}</b><span>${esc(dest.persona)}</span></div>
       </div>
-      <div class="follow btns"><button class="btn ghost" id="b-follow"></button>${puedeEditar(e) ? `<a class="btn ghost" href="#/editar/${encodeURIComponent(e.id)}">${icon('edit')} Modificar</a>` : ''}</div>
+      <div class="follow btns">${!alm && !(e.estado === 'entregado' && !sigo(e.id)) ? '<button class="btn ghost" id="b-follow"></button>' : ''}${puedeEditar(e) ? `<a class="btn ghost" href="#/editar/${encodeURIComponent(e.id)}">${icon('edit')} Modificar</a>` : ''}</div>
     </div>
     ${nuevo ? '' : accion}
     <div class="card"><details class="box" ${etqOpen ? 'open' : ''}><summary>Etiqueta</summary>
@@ -819,9 +821,9 @@ async function vFicha(id, nuevo){
       ${e.modificado ? `<dt>Modificado</dt><dd>${fmt(e.modificado)}</dd>` : ''}
     </dl></details></div>`;
   $('#b-print').onclick = () => imprimir(e);
-  const pintaFollow = () => { const s = sigo(e.id), b = $('#b-follow'); b.className = 'btn ' + (s ? 'sec on-star' : 'ghost'); b.innerHTML = icon('star') + (s ? ' En Mis envíos' : ' Añadir a Mis envíos'); };
+  const pintaFollow = () => { const s = sigo(e.id), b = $('#b-follow'); if(!b) return; b.className = 'btn ' + (s ? 'sec on-star' : 'ghost'); b.innerHTML = icon('star') + (s ? ' Lo sigues (en Mis envíos)' : ' Seguir este envío'); };
   pintaFollow();
-  $('#b-follow').onclick = () => { if(sigo(e.id)){ dejar(e.id); toast('Quitado de Mis envíos'); } else { seguir(e.id); toast('Añadido a Mis envíos'); } pintaFollow(); };
+  if($('#b-follow')) $('#b-follow').onclick = () => { if(sigo(e.id)){ dejar(e.id); toast('Ya no lo sigues'); } else { seguir(e.id); toast('Lo verás en Mis envíos'); } pintaFollow(); };
   if(!alm) unsubs.push(Store.watch([e.id], l => { if(l[0] && l[0].actualizado !== e.actualizado){ toast('Estado actualizado: ' + ESTADOS[l[0].estado].label); vFicha(e.id); } }));
   $('#b-copy').onclick = async () => { try{ await navigator.clipboard.writeText(urlEnvio(e.id)); toast('Enlace copiado'); }catch(_){ prompt('Copia el enlace:', urlEnvio(e.id)); } };
   if(nx && alm){
