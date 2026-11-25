@@ -32,7 +32,7 @@ button{font:inherit;color:inherit}
 .brand{font-weight:700;font-size:17px;letter-spacing:-.01em;line-height:1.1}
 .brand small{display:block;font-weight:500;font-size:12px;color:var(--mute)}
 .tr{margin-left:auto;display:flex;gap:6px;align-items:center}
-.rol{font-size:12px;font-weight:700;padding:6px 10px;border-radius:99px;background:var(--ink);color:#fff}
+.rol{font-size:12px;font-weight:700;padding:6px 10px;border-radius:99px;background:var(--ink);color:#fff;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rol:empty{display:none}
 .rf-btn{width:36px;height:36px;border-radius:50%;border:0;background:#fff;box-shadow:var(--sh);display:grid;place-items:center;cursor:pointer;color:var(--ink);flex:none}
 .rf-btn svg.i{width:18px;height:18px}
@@ -315,8 +315,9 @@ const CONFIG_FIJA = {
   baseUrl:   '',   // Dirección donde se publica la app. Ej.: 'https://intranet.empresa.com/envios/'
   sedes:     [],   // Ej.: ['Zamudio', 'Ortuella']
   edificios: [],   // Ej.: ['106', 'Ballonti']
-  pinAlmacen: '',  // PIN del modo almacén. Ej.: '4821'. Con PIN, solo almacén/recepción pueden cambiar estados.
-                   // Vacío = cualquiera puede cambiarlos.
+  pinAlmacen: '1234', // PIN de almacén/recepción (PRUEBAS: cámbialo). Cada almacén elige además su puesto.
+  pinAdmin:   '9999', // PIN de administrador (PRUEBAS: cámbialo). Puede hacer cualquier paso y configurar la app.
+                      // Sin ningún PIN, cualquier aparato puede hacerlo todo.
   firebase:  {     // Proyecto de PRUEBAS (envios-pruebas). La empresa pondrá aquí el suyo.
     apiKey: "AIzaSyAmYq080wkPXwDZbMKY8aqyAkEsfp5ZdOQ",
     authDomain: "envios-pruebas.firebaseapp.com",
@@ -375,13 +376,14 @@ const donde = o => [o.sede, o.edificio].filter(Boolean).join(' · ');
 let toastT; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
 
 /* ===== Configuración ===== */
-const DEF = { empresa:'Envíos internos', baseUrl:'', sedes:['Zamudio','Ortuella'], edificios:['106','Ballonti'], etiqueta:'100x70', firebase:'', usuario:'', pin:'' };
+const DEF = { empresa:'Envíos internos', baseUrl:'', sedes:['Zamudio','Ortuella'], edificios:['106','107','Ballonti'], puestos:['Zamudio · 106','Zamudio · 107','Ortuella · Ballonti'], etiqueta:'100x70', firebase:'', usuario:'', pin:'', pinAdmin:'' };
 const FIJO = {};
 if(CONFIG_FIJA.empresa) FIJO.empresa = CONFIG_FIJA.empresa;
 if(CONFIG_FIJA.baseUrl) FIJO.baseUrl = CONFIG_FIJA.baseUrl;
 if(CONFIG_FIJA.sedes && CONFIG_FIJA.sedes.length) FIJO.sedes = CONFIG_FIJA.sedes;
 if(CONFIG_FIJA.edificios && CONFIG_FIJA.edificios.length) FIJO.edificios = CONFIG_FIJA.edificios;
 if(CONFIG_FIJA.pinAlmacen) FIJO.pin = String(CONFIG_FIJA.pinAlmacen);
+if(CONFIG_FIJA.pinAdmin) FIJO.pinAdmin = String(CONFIG_FIJA.pinAdmin);
 let cfg = Object.assign({}, DEF, LS.get('env_cfg', {}), FIJO);
 const fijo = k => k === 'firebase' ? !!CONFIG_FIJA.firebase : k in FIJO;
 const nf = k => fijo(k) ? ' disabled title="Fijado por la empresa"' : '';
@@ -450,6 +452,17 @@ function parseFirebase(txt){
   return o;
 }
 const loadScript = src => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => ko(new Error('No se pudo cargar ' + src)); document.head.appendChild(s); });
+let compartida = {};
+function aplicarCompartida(){ ['empresa','sedes','edificios','puestos'].forEach(k => { if(compartida[k] && !(k in FIJO)) cfg[k] = compartida[k]; }); }
+async function cargarCompartida(){
+  if(Store !== Cloud) return;
+  try{ const s = await Cloud.db.collection('config').doc('general').get(); if(s.exists){ compartida = s.data(); aplicarCompartida(); } }catch(_){}
+}
+async function guardarCompartida(){
+  if(Store !== Cloud) return;
+  const d = { empresa:cfg.empresa, sedes:cfg.sedes, edificios:cfg.edificios, puestos:cfg.puestos, actualizado:Date.now() };
+  await Cloud.db.collection('config').doc('general').set(d); compartida = d;
+}
 async function initStore(){
   if(!CONFIG_FIJA.firebase && !cfg.firebase.trim()) return;
   try{
@@ -466,20 +479,42 @@ function pintaModo(){
   if(modoError){ c.className = 'conn err'; c.textContent = 'Error de conexión'; c.title = modoError; }
   else if(Store === Cloud){ c.className = 'conn cloud'; c.textContent = 'Conectado'; c.title = 'Los envíos se comparten entre todos los dispositivos'; }
   else { c.className = 'conn local'; c.textContent = 'Solo este equipo'; c.title = 'Los envíos solo se guardan en este dispositivo. Conecta Firebase en Ajustes.'; }
-  $('#rol').textContent = cfg.pin && esAlmacen() ? 'Almacén' : '';
+  const r = rol(); $('#rol').textContent = (cfg.pin || cfg.pinAdmin) ? (r === 'admin' ? 'Admin' : r === 'almacen' ? miPuesto() : '') : '';
   $('#h-emp').textContent = cfg.empresa || 'Envíos internos';
   document.title = (cfg.empresa || 'Envíos') + ' · Envíos internos';
   $('#page-style').textContent = cfg.etiqueta === 'A4' ? '@page{size:A4;margin:10mm}' : '@page{size:100mm 70mm;margin:0}';
 }
 
 /* ===== Navegación ===== */
-const esAlmacen = () => !cfg.pin || LS.get('env_almacen', '') === cfg.pin;
+/* Roles: trabajador (crea y consulta) · almacén (con PIN y puesto) · administrador (todo) */
+function rol(){
+  if(!cfg.pin && !cfg.pinAdmin) return 'admin';
+  const r = LS.get('env_rol', {}) || {};
+  if(r.rol === 'admin' && cfg.pinAdmin && r.pin === cfg.pinAdmin) return 'admin';
+  if(r.rol === 'almacen' && cfg.pin && r.pin === cfg.pin && r.puesto) return 'almacen';
+  return 'trabajador';
+}
+const esAlmacen = () => rol() !== 'trabajador';
+const esAdmin = () => rol() === 'admin' || (rol() === 'almacen' && !cfg.pinAdmin);
+const miPuesto = () => (LS.get('env_rol', {}) || {}).puesto || '';
+const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const partes = p => String(p).split(/\s*[·,\/|]\s*|\s+-\s+/).map(x => x.trim()).filter(Boolean);
+function enPuesto(o, puesto){
+  if(!puesto || !o) return false;
+  const [ps, pe = ''] = partes(puesto);
+  if(norm(o.sede) !== norm(ps)) return false;
+  return !o.edificio || !pe || norm(o.edificio) === norm(pe);
+}
+function puedePaso(e, nx){
+  const r = rol(); if(r === 'admin') return true; if(r !== 'almacen') return false;
+  return nx === 'transito' ? enPuesto(e.origen, miPuesto()) : enPuesto(e.destino, miPuesto());
+}
 const misIds = () => LS.get('env_mis', []);
 const sigo = id => misIds().includes(id);
 const seguir = id => { const m = misIds(); if(!m.includes(id)){ m.unshift(id); LS.set('env_mis', m.slice(0, 300)); } };
 const dejar = id => LS.set('env_mis', misIds().filter(x => x !== id));
 const creados = () => LS.get('env_creados', []);
-const puedeEditar = e => e.estado !== 'entregado' && (esAlmacen() || (e.estado === 'creado' && creados().includes(e.id)));
+const puedeEditar = e => e.estado !== 'entregado' && (rol() === 'admin' || (rol() === 'almacen' && (enPuesto(e.origen, miPuesto()) || enPuesto(e.destino, miPuesto()))) || (e.estado === 'creado' && creados().includes(e.id)));
 let unsubs = [];
 const limpiar = () => { unsubs.forEach(u => { try{ u(); }catch(_){} }); unsubs = []; };
 function pintaNav(v){
@@ -636,6 +671,7 @@ function vNuevo(ed = null){
   <div class="h1">${ed ? 'Modificar envío' : 'Nuevo envío'}</div><p class="sub">${ed ? 'Cambia lo que necesites y guarda. Después vuelve a imprimir la etiqueta.' : 'Rellena los 3 apartados y genera la etiqueta.'}</p>
   <form id="f" autocomplete="off">
     <div class="card"><div class="card-t"><span class="num">1</span>¿Desde dónde sale?</div>
+      ${chipsPuesto('o')}
       <div class="f">
         <div><label class="l">Sede</label><input name="o_se" list="sedes" required value="${esc(last.sede)}" placeholder="Zamudio"></div>
         <div><label class="l">Edificio</label><input name="o_ed" list="edifs" value="${esc(last.edificio)}" placeholder="106"></div>
@@ -644,6 +680,7 @@ function vNuevo(ed = null){
       </div>
     </div>
     <div class="card"><div class="card-t"><span class="num">2</span>¿Para quién es?</div>
+      ${chipsPuesto('d')}
       <div class="f">
         <div><label class="l">Sede</label><input name="d_se" list="sedes" required value="${esc(ds.sede)}" placeholder="Ortuella"></div>
         <div><label class="l">Edificio</label><input name="d_ed" list="edifs" value="${esc(ds.edificio)}" placeholder="Ballonti"></div>
@@ -667,6 +704,13 @@ function vNuevo(ed = null){
     </div>
     <div class="sticky-go"><button class="btn big" id="go">${ed ? icon('check') + ' Guardar cambios' : icon('printer') + ' Generar etiqueta'}</button></div>
   </form>`;
+  document.querySelectorAll('.pq').forEach(c => c.onclick = () => {
+    const [se, ed = ''] = partes(c.dataset.p), k = c.dataset.k, f = $('#f');
+    f[k + '_se'].value = se; f[k + '_ed'].value = ed; marcaPuestos();
+  });
+  const marcaPuestos = () => ['o','d'].forEach(k => document.querySelectorAll(`.pq[data-k="${k}"]`).forEach(c => {
+    const [se, ed = ''] = partes(c.dataset.p); c.classList.toggle('on', norm($('#f')[k + '_se'].value) === norm(se) && norm($('#f')[k + '_ed'].value) === norm(ed)); }));
+  ['o_se','o_ed','d_se','d_ed'].forEach(n => $('#f')[n].addEventListener('input', marcaPuestos)); marcaPuestos();
   document.querySelectorAll('.stepperN button').forEach(b => b.onclick = () => { const i = b.parentNode.querySelector('input'); i.value = Math.max(1, (Number(i.value) || 1) + Number(b.dataset.d)); });
   $('#f').onsubmit = async ev => {
     ev.preventDefault(); const b = $('#go'); b.disabled = true; b.textContent = ed ? 'Guardando…' : 'Generando…';
@@ -704,6 +748,8 @@ function vNuevo(ed = null){
     }catch(err){ alert('No se pudo crear el envío: ' + err.message); b.disabled = false; b.innerHTML = icon('printer') + ' Generar etiqueta'; }
   };
 }
+
+const chipsPuesto = k => (cfg.puestos || []).length ? `<div style="margin:-4px 0 12px"><label class="l">Almacén <i>(pulsa uno o escríbelo abajo)</i></label><div class="pills">${cfg.puestos.map(p => `<button type="button" class="chip pq" data-k="${k}" data-p="${esc(p)}">${esc(p)}</button>`).join('')}</div></div>` : '';
 
 /* ===== Etiqueta ===== */
 function barSvg(text){
@@ -758,8 +804,10 @@ async function vFicha(id, nuevo){
   const nx = ESTADOS[e.estado].next, dest = e.destino, idx = ORDEN.indexOf(e.estado);
   const alm = esAlmacen();
   let accion = '';
-  if(nx && !alm){
-    accion = `<div class="card info-card"><span class="ic">${icon('clock')}</span><div><b>Siguiente paso: ${PASOS[nx].titulo.toLowerCase()}</b><p class="muted" style="margin:2px 0 0">Lo actualiza el almacén al escanear el paquete.${Store === Cloud ? ' Esta página se actualiza sola.' : ''}</p></div></div>`;
+  const puede = nx && puedePaso(e, nx);
+  if(nx && !puede){
+    const quien = nx === 'transito' ? `el almacén de ${donde(e.origen)}` : `el almacén de ${donde(dest)}`;
+    accion = `<div class="card info-card"><span class="ic">${icon(alm ? 'lock' : 'clock')}</span><div><b>Siguiente paso: ${PASOS[nx].titulo.toLowerCase()}</b><p class="muted" style="margin:2px 0 0">Lo registra ${esc(quien)}.${alm ? ` Tu puesto es ${esc(miPuesto())}, desde aquí no puedes hacer este paso.` : ''}${Store === Cloud ? ' Esta página se actualiza sola.' : ''}</p></div></div>`;
   } else if(nx){
     const P = PASOS[nx];
     accion = `<div class="card next-card" style="--c:${col(nx)}">
@@ -828,9 +876,9 @@ async function vFicha(id, nuevo){
   const pintaFollow = () => { const s = sigo(e.id), b = $('#b-follow'); if(!b) return; b.className = 'btn ' + (s ? 'sec on-star' : 'ghost'); b.innerHTML = icon('star') + (s ? ' Lo sigues (en Mis envíos)' : ' Seguir este envío'); };
   pintaFollow();
   if($('#b-follow')) $('#b-follow').onclick = () => { if(sigo(e.id)){ dejar(e.id); toast('Ya no lo sigues'); } else { seguir(e.id); toast('Lo verás en Mis envíos'); } pintaFollow(); };
-  if(!alm) unsubs.push(Store.watch([e.id], l => { if(l[0] && l[0].actualizado !== e.actualizado){ toast('Estado actualizado: ' + ESTADOS[l[0].estado].label); vFicha(e.id); } }));
+  if(!puede) unsubs.push(Store.watch([e.id], l => { if(l[0] && l[0].actualizado !== e.actualizado){ toast('Estado actualizado: ' + ESTADOS[l[0].estado].label); vFicha(e.id); } }));
   $('#b-copy').onclick = async () => { try{ await navigator.clipboard.writeText(urlEnvio(e.id)); toast('Enlace copiado'); }catch(_){ prompt('Copia el enlace:', urlEnvio(e.id)); } };
-  if(nx && alm){
+  if(puede){
     const sig = nx === 'entregado' ? firmaPad($('#sig')) : null;
     if(sig) $('#sig-clr').onclick = () => { sig.clear(); $('#sig-ph').style.display = ''; };
     $('#a-go').onclick = async () => {
@@ -984,31 +1032,59 @@ function vScan(){
 /* ===== Vista: ajustes ===== */
 function vAjustes(){
   limpiar();
-  const alm = esAlmacen(), conPin = !!cfg.pin;
-  const almCard = !conPin ? '' : alm
-    ? `<div class="card"><div class="card-t">${icon('lock')} Modo almacén</div><p class="muted" style="margin:-6px 0 12px">Este dispositivo está en modo almacén: puede cambiar el estado de los envíos y ver todos.</p><button class="btn ghost" id="alm-off">Salir del modo almacén</button></div>`
-    : `<div class="card"><div class="card-t">${icon('lock')} Modo almacén</div><p class="muted" style="margin:-6px 0 12px">Solo para el personal de almacén y recepción.</p><div class="row-in"><input id="alm-pin" type="password" inputmode="numeric" placeholder="PIN" style="text-transform:none"><button class="btn" id="alm-on">Entrar</button></div></div>`;
-  $('#app').innerHTML = `<div class="h1">Ajustes</div><p class="sub">Se guardan en este dispositivo.</p>
+  const r = rol(), adm = esAdmin(), hayPin = !!(cfg.pin || cfg.pinAdmin);
+  const opPuestos = (cfg.puestos || []).map(p => `<option ${p === miPuesto() ? 'selected' : ''}>${esc(p)}</option>`).join('');
+  let acceso = '';
+  if(hayPin){
+    if(r === 'trabajador') acceso = `
+      <div class="card"><div class="card-t">${icon('lock')} Acceso de almacén</div>
+        <p class="muted" style="margin:-6px 0 12px">Solo para almacén y recepción. Elige dónde estás: solo podrás registrar la salida de los envíos que salen de tu puesto, y el recibí y la entrega de los que llegan a él.</p>
+        <div class="fields" style="margin:0">
+          <div><label class="l">Mi puesto</label><select id="ac-puesto">${opPuestos}</select></div>
+          <div class="row-in"><input id="ac-pin" type="password" inputmode="numeric" placeholder="PIN de almacén" style="text-transform:none"><button class="btn" id="ac-alm">Entrar</button></div>
+        </div>
+      </div>
+      ${cfg.pinAdmin ? `<div class="card"><div class="card-t">${icon('lock')} Administrador</div>
+        <div class="row-in"><input id="ad-pin" type="password" inputmode="numeric" placeholder="PIN de administrador" style="text-transform:none"><button class="btn ghost" id="ac-adm">Entrar</button></div></div>` : ''}`;
+    else if(r === 'almacen') acceso = `
+      <div class="card"><div class="card-t">${icon('lock')} Modo almacén</div>
+        <p class="muted" style="margin:-6px 0 12px">Estás en el puesto <b style="color:var(--ink)">${esc(miPuesto())}</b>. Registras la salida de lo que sale de aquí, y el recibí y la entrega de lo que llega aquí.</p>
+        <label class="l">Cambiar de puesto</label><select id="ac-cambia">${opPuestos}</select>
+        <div class="btns" style="margin-top:12px"><button class="btn ghost" id="ac-salir">Salir del modo almacén</button></div>
+      </div>`;
+    else acceso = `
+      <div class="card"><div class="card-t">${icon('lock')} Administrador</div>
+        <p class="muted" style="margin:-6px 0 12px">Puedes hacer cualquier paso desde cualquier sitio y configurar la app.</p>
+        <button class="btn ghost" id="ac-salir">Salir del modo administrador</button></div>`;
+  }
+  $('#app').innerHTML = `<div class="h1">Ajustes</div><p class="sub">${adm ? 'Los puestos, sedes y edificios se comparten con todos los aparatos.' : 'Se guardan en este dispositivo.'}</p>
   <div class="card"><div class="card-t">Tú</div>
     <div class="fields" style="margin:0">
-      <div><label class="l">Tu nombre <i>(se propone al crear y escanear)</i></label><input id="s-usr" value="${esc(cfg.usuario)}" placeholder="Nombre y apellido"></div>
+      <div><label class="l">Tu nombre <i>(se propone al crear un envío)</i></label><input id="s-usr" value="${esc(cfg.usuario)}" placeholder="Nombre y apellido"></div>
       <div><label class="l">Tamaño de impresión de la etiqueta</label><select id="s-et"><option value="100x70" ${cfg.etiqueta !== 'A4' ? 'selected' : ''}>Etiqueta adhesiva 100 × 70 mm</option><option value="A4" ${cfg.etiqueta === 'A4' ? 'selected' : ''}>Folio A4 (para recortar)</option></select></div>
     </div>
   </div>
-  ${almCard}
-  ${alm ? `
+  ${acceso}
+  ${adm ? `
+  <div class="card"><div class="card-t">Puestos de almacén</div>
+    <p class="muted" style="margin:-6px 0 12px">Uno por línea, como <b>Sede · Edificio</b> (ej. <i>Zamudio · 106</i>). Para añadir un almacén nuevo, escríbelo aquí y guarda.</p>
+    <textarea id="s-pu" style="min-height:110px">${esc((cfg.puestos || []).join('\n'))}</textarea>
+  </div>
   <div class="card"><div class="card-t">Empresa, sedes y edificios</div>
     <div class="fields" style="margin:0">
       <div><label class="l">Nombre que sale en la etiqueta</label><input id="s-emp" value="${esc(cfg.empresa)}"${nf('empresa')}></div>
       <div class="grid2">
         <div><label class="l">Sedes <i>(una por línea)</i></label><textarea id="s-se"${nf('sedes')}>${esc((cfg.sedes || []).join('\n'))}</textarea></div>
-        <div><label class="l">Edificios <i>(uno por línea)</i></label><textarea id="s-ed"${nf('edificios')}>${esc(cfg.edificios.join('\n'))}</textarea></div>
+        <div><label class="l">Edificios <i>(uno por línea)</i></label><textarea id="s-ed"${nf('edificios')}>${esc((cfg.edificios || []).join('\n'))}</textarea></div>
       </div>
     </div>
   </div>
-  ${fijo('pin') ? '' : `<div class="card"><div class="card-t">PIN del almacén</div>
-    <p class="muted" style="margin:-6px 0 12px">Con PIN, solo los dispositivos en modo almacén pueden cambiar estados; el resto solo crea y consulta. Vacío = cualquiera puede. Para toda la empresa se pone en el archivo (CONFIG_FIJA).</p>
-    <input id="s-pin" value="${esc(cfg.pin)}" inputmode="numeric" placeholder="Sin PIN">
+  ${fijo('pin') && fijo('pinAdmin') ? `<div class="card"><div class="card-t">PINs</div><p class="muted" style="margin:0">Los PIN de almacén y de administrador están fijados en el archivo de la app (CONFIG_FIJA).</p></div>` : `<div class="card"><div class="card-t">PINs <i class="muted" style="font-weight:400;font-size:13px">(solo en este aparato)</i></div>
+    <div class="grid2">
+      <div><label class="l">PIN de almacén</label><input id="s-pin" value="${esc(cfg.pin)}"${nf('pin')} inputmode="numeric" placeholder="Sin PIN"></div>
+      <div><label class="l">PIN de administrador</label><input id="s-pinad" value="${esc(cfg.pinAdmin)}"${nf('pinAdmin')} inputmode="numeric" placeholder="Sin PIN"></div>
+    </div>
+    <p class="small" style="margin-top:8px">Para toda la empresa se ponen en el archivo (CONFIG_FIJA).</p>
   </div>`}
   <div class="card"><div class="card-t">Publicación</div>
     <label class="l">Dirección de la app <i>(la que llevará el QR)</i></label><input id="s-url"${nf('baseUrl')} value="${esc(cfg.baseUrl)}" placeholder="${esc(webReal() ? location.origin + location.pathname : 'https://ezguum-zuri.github.io/envios/')}">
@@ -1019,31 +1095,40 @@ function vAjustes(){
     <textarea id="s-fb" style="min-height:120px;font-family:ui-monospace,monospace;font-size:13px" placeholder='{ apiKey: "...", authDomain: "...", projectId: "...", ... }'>${esc(cfg.firebase)}</textarea>
   </div>`}` : ''}
   <div class="sticky-go"><button class="btn big" id="s-save">${icon('check')} Guardar ajustes</button></div>
-  ${alm ? `<div class="card" style="margin-top:14px"><div class="card-t">Copia de seguridad</div>
-    <p class="muted" style="margin:-6px 0 12px">Solo para los envíos guardados en este equipo.</p>
+  ${adm ? `<div class="card" style="margin-top:14px"><div class="card-t">Copia de seguridad</div>
+    <p class="muted" style="margin:-6px 0 12px">Solo para los envíos guardados en este equipo (modo sin Firebase).</p>
     <div class="btns"><button class="btn ghost" id="s-exp">${icon('download')} Exportar</button><label class="btn ghost" style="margin:0">Importar<input type="file" id="s-imp" accept=".json" hidden></label></div>
   </div>` : ''}`;
-  const refresco = () => { pintaModo(); pintaNav('ajustes'); vAjustes(); };
-  if($('#alm-on')){
-    $('#alm-on').onclick = () => { if($('#alm-pin').value.trim() === cfg.pin){ LS.set('env_almacen', cfg.pin); toast('Modo almacén activado'); refresco(); } else { toast('PIN incorrecto'); $('#alm-pin').select(); } };
-    $('#alm-pin').onkeydown = ev => { if(ev.key === 'Enter') $('#alm-on').click(); };
+  const refresco = msg => { if(msg) toast(msg); pintaModo(); pintaNav('ajustes'); vAjustes(); };
+  if($('#ac-alm')){
+    const entrar = () => { if($('#ac-pin').value.trim() === cfg.pin){ LS.set('env_rol', { rol:'almacen', pin:cfg.pin, puesto:$('#ac-puesto').value }); refresco('Modo almacén: ' + $('#ac-puesto').value); } else { toast('PIN incorrecto'); $('#ac-pin').select(); } };
+    $('#ac-alm').onclick = entrar; $('#ac-pin').onkeydown = ev => { if(ev.key === 'Enter') entrar(); };
   }
-  if($('#alm-off')) $('#alm-off').onclick = () => { LS.set('env_almacen', ''); toast('Has salido del modo almacén'); refresco(); };
-  $('#s-save').onclick = () => {
+  if($('#ac-adm')){
+    const entrar = () => { if($('#ad-pin').value.trim() === cfg.pinAdmin){ LS.set('env_rol', { rol:'admin', pin:cfg.pinAdmin }); refresco('Modo administrador'); } else { toast('PIN incorrecto'); $('#ad-pin').select(); } };
+    $('#ac-adm').onclick = entrar; $('#ad-pin').onkeydown = ev => { if(ev.key === 'Enter') entrar(); };
+  }
+  if($('#ac-cambia')) $('#ac-cambia').onchange = ev => { const r0 = LS.get('env_rol', {}); r0.puesto = ev.target.value; LS.set('env_rol', r0); refresco('Puesto: ' + ev.target.value); };
+  if($('#ac-salir')) $('#ac-salir').onclick = () => { LS.set('env_rol', {}); refresco('Has salido'); };
+  $('#s-save').onclick = async () => {
     const val = id => { const el = $(id); return el && !el.disabled ? el.value.trim() : null; };
+    const lista = id => val(id) === null ? null : val(id).split('\n').map(x => x.trim()).filter(Boolean);
     const fbOld = cfg.firebase;
     cfg.usuario = val('#s-usr') ?? cfg.usuario;
     cfg.etiqueta = $('#s-et').value;
     if(val('#s-emp') !== null) cfg.empresa = val('#s-emp') || 'Envíos internos';
-    if(val('#s-se') !== null) cfg.sedes = val('#s-se').split('\n').map(s => s.trim()).filter(Boolean);
-    if(val('#s-ed') !== null) cfg.edificios = val('#s-ed').split('\n').map(s => s.trim()).filter(Boolean);
+    if(lista('#s-se')) cfg.sedes = lista('#s-se');
+    if(lista('#s-ed')) cfg.edificios = lista('#s-ed');
+    if(lista('#s-pu')) cfg.puestos = lista('#s-pu');
     if(val('#s-url') !== null) cfg.baseUrl = val('#s-url');
-    if(val('#s-pin') !== null){ const np = val('#s-pin'); if(np) LS.set('env_almacen', np); cfg.pin = np; }
+    if(val('#s-pin') !== null) cfg.pin = val('#s-pin');
+    if(val('#s-pinad') !== null) cfg.pinAdmin = val('#s-pinad');
     const fb = val('#s-fb') ?? cfg.firebase;
     if(fb){ try{ parseFirebase(fb); }catch(err){ alert('La configuración de Firebase no es válida: ' + err.message); return; } }
     cfg.firebase = fb; Object.assign(cfg, FIJO); saveCfg();
+    if(adm && $('#s-pu')){ try{ await guardarCompartida(); }catch(err){ alert('Se guardó en este aparato, pero no se pudo compartir: ' + err.message); } }
     if(fb !== fbOld){ location.hash = '#/inicio'; location.reload(); return; }
-    toast('Ajustes guardados'); refresco();
+    refresco('Ajustes guardados');
   };
   if($('#s-exp')) $('#s-exp').onclick = () => {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ envios:LS.get('env_data',{}), contador:LS.get('env_cnt',{}) }, null, 1)], {type:'application/json'}));
@@ -1058,7 +1143,7 @@ function vAjustes(){
 
 /* ===== Arranque ===== */
 document.getElementById('recargar').onclick = ev => { ev.currentTarget.classList.add('spin'); location.reload(); };
-(async () => { await initStore(); pintaModo(); route(); })();
+(async () => { await initStore(); await cargarCompartida(); pintaModo(); route(); })();
 </script>
 </body>
 </html>
