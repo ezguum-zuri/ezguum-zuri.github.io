@@ -350,6 +350,7 @@ const IC = {
   flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
   star:'<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>',
   lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'
 };
 const icon = n => `<svg class="i" viewBox="0 0 24 24">${IC[n] || ''}</svg>`;
@@ -473,6 +474,8 @@ const misIds = () => LS.get('env_mis', []);
 const sigo = id => misIds().includes(id);
 const seguir = id => { const m = misIds(); if(!m.includes(id)){ m.unshift(id); LS.set('env_mis', m.slice(0, 300)); } };
 const dejar = id => LS.set('env_mis', misIds().filter(x => x !== id));
+const creados = () => LS.get('env_creados', []);
+const puedeEditar = e => e.estado !== 'entregado' && (esAlmacen() || (e.estado === 'creado' && creados().includes(e.id)));
 let unsubs = [];
 const limpiar = () => { unsubs.forEach(u => { try{ u(); }catch(_){} }); unsubs = []; };
 function pintaNav(v){
@@ -491,10 +494,11 @@ function route(){
   if(view === 'panel') view = 'envios';
   if(view === 'envios' && !alm) view = 'mis';
   stopScanner(); limpiar();
-  pintaNav(view === 'envio' ? (alm ? 'envios' : 'mis') : (view || 'inicio'));
+  pintaNav(view === 'envio' || view === 'editar' ? (alm ? 'envios' : 'mis') : (view || 'inicio'));
   window.scrollTo(0, 0);
   if(view === 'nuevo') vNuevo();
   else if(view === 'envio' && arg) vFicha(decodeURIComponent(arg), extra === 'nuevo');
+  else if(view === 'editar' && arg) vEditar(decodeURIComponent(arg));
   else if(view === 'escanear') vScan();
   else if(view === 'ajustes') vAjustes();
   else if(view === 'envios') vLista();
@@ -609,50 +613,76 @@ function vMis(){
 }
 
 /* ===== Vista: nuevo envío ===== */
-function vNuevo(){
-  const last = LS.get('env_last_origen', {});
-  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+async function vEditar(id){
+  limpiar();
+  $('#app').innerHTML = '<div class="empty">Cargando…</div>';
+  let e; try{ e = await Store.get(id); }catch(err){ $('#app').innerHTML = `<div class="card">Error: ${esc(err.message)}</div>`; return; }
+  if(!e){ $('#app').innerHTML = `<div class="empty">No existe el envío ${esc(id)}.</div>`; return; }
+  if(!puedeEditar(e)){ $('#app').innerHTML = `<div class="empty"><div class="ic">${icon('lock')}</div>Este envío ya no se puede modificar${e.estado === 'entregado' ? ' porque está entregado' : '. Una vez recogido, solo el almacén puede cambiarlo'}.<br><br><a class="btn sec" href="#/envio/${encodeURIComponent(e.id)}">Volver al envío</a></div>`; return; }
+  vNuevo(e);
+}
+function vNuevo(ed = null){
+  const last = ed ? ed.origen : LS.get('env_last_origen', {});
+  const ds = ed ? ed.destino : {};
+  const now = new Date(ed ? ed.fecha : Date.now()); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
   const dl = `<datalist id="edifs">${cfg.edificios.map(e => `<option value="${esc(e)}">`).join('')}</datalist><datalist id="sedes">${(cfg.sedes || []).map(e => `<option value="${esc(e)}">`).join('')}</datalist>`;
   const tipos = ['Documentos','Material','Muestras','Herramienta','Repuesto','Otro'];
   $('#app').innerHTML = `${dl}
-  <div class="h1">Nuevo envío</div><p class="sub">Rellena los 3 apartados y genera la etiqueta.</p>
+  ${ed ? `<a class="back" href="#/envio/${encodeURIComponent(ed.id)}">${icon('back')} ${esc(ed.id)}</a>` : ''}
+  <div class="h1">${ed ? 'Modificar envío' : 'Nuevo envío'}</div><p class="sub">${ed ? 'Cambia lo que necesites y guarda. Después vuelve a imprimir la etiqueta.' : 'Rellena los 3 apartados y genera la etiqueta.'}</p>
   <form id="f" autocomplete="off">
     <div class="card"><div class="card-t"><span class="num">1</span>¿Desde dónde sale?</div>
       <div class="f">
         <div><label class="l">Sede</label><input name="o_se" list="sedes" required value="${esc(last.sede)}" placeholder="Zamudio"></div>
         <div><label class="l">Edificio</label><input name="o_ed" list="edifs" value="${esc(last.edificio)}" placeholder="106"></div>
         <div class="s2"><label class="l">Planta <i>(opcional)</i></label><input name="o_pl" value="${esc(last.planta)}"></div>
-        <div class="s4"><label class="l">Quién lo envía</label><input name="o_pe" required value="${esc(last.persona || cfg.usuario)}" placeholder="Nombre y apellido"></div>
+        <div class="s4"><label class="l">Quién lo envía</label><input name="o_pe" required value="${esc(last.persona || (ed ? '' : cfg.usuario))}" placeholder="Nombre y apellido"></div>
       </div>
     </div>
     <div class="card"><div class="card-t"><span class="num">2</span>¿Para quién es?</div>
       <div class="f">
-        <div><label class="l">Sede</label><input name="d_se" list="sedes" required placeholder="Ortuella"></div>
-        <div><label class="l">Edificio</label><input name="d_ed" list="edifs" placeholder="Ballonti"></div>
-        <div class="s2"><label class="l">Planta <i>(opcional)</i></label><input name="d_pl"></div>
-        <div class="s4"><label class="l">Quién lo recibe</label><input name="d_pe" required placeholder="Nombre y apellido"></div>
+        <div><label class="l">Sede</label><input name="d_se" list="sedes" required value="${esc(ds.sede)}" placeholder="Ortuella"></div>
+        <div><label class="l">Edificio</label><input name="d_ed" list="edifs" value="${esc(ds.edificio)}" placeholder="Ballonti"></div>
+        <div class="s2"><label class="l">Planta <i>(opcional)</i></label><input name="d_pl" value="${esc(ds.planta)}"></div>
+        <div class="s4"><label class="l">Quién lo recibe</label><input name="d_pe" required value="${esc(ds.persona)}" placeholder="Nombre y apellido"></div>
       </div>
     </div>
     <div class="card"><div class="card-t"><span class="num">3</span>¿Qué envías?</div>
       <label class="l">Tipo</label>
-      <div class="pills" style="margin-bottom:16px">${tipos.map((t,i) => `<label class="pill"><input type="radio" name="tipo" value="${t}" ${i === 0 ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div>
+      <div class="pills" style="margin-bottom:16px">${tipos.map((t,i) => `<label class="pill"><input type="radio" name="tipo" value="${t}" ${(ed ? ed.tipo === t : i === 0) ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div>
       <div class="f" style="margin-bottom:16px">
-        <div class="s2" style="grid-column:span 3"><label class="l">Descripción <i>(opcional)</i></label><input name="desc" placeholder="Ej.: contratos firmados, 2 tarjetas…"></div>
-        <div><label class="l">Bultos</label><div class="stepperN"><button type="button" data-d="-1">−</button><input name="bultos" type="number" min="1" value="1" inputmode="numeric"><button type="button" data-d="1">+</button></div></div>
+        <div class="s2" style="grid-column:span 3"><label class="l">Descripción <i>(opcional)</i></label><input name="desc" value="${esc(ed ? ed.descripcion : '')}" placeholder="Ej.: contratos firmados, 2 tarjetas…"></div>
+        <div><label class="l">Bultos</label><div class="stepperN"><button type="button" data-d="-1">−</button><input name="bultos" type="number" min="1" value="${ed ? ed.bultos : 1}" inputmode="numeric"><button type="button" data-d="1">+</button></div></div>
       </div>
       <label class="l">Prioridad</label>
       <div class="prio" style="margin-bottom:12px">
-        <label><input type="radio" name="prio" value="normal" checked><span>${icon('clock')} Normal</span></label>
-        <label><input type="radio" name="prio" value="urgente"><span>${icon('flame')} Urgente</span></label>
+        <label><input type="radio" name="prio" value="normal" ${ed && ed.prioridad === 'urgente' ? '' : 'checked'}><span>${icon('clock')} Normal</span></label>
+        <label><input type="radio" name="prio" value="urgente" ${ed && ed.prioridad === 'urgente' ? 'checked' : ''}><span>${icon('flame')} Urgente</span></label>
       </div>
       <details class="more"><summary>Cambiar fecha y hora</summary><div style="margin-top:10px"><input name="fecha" type="datetime-local" value="${now.toISOString().slice(0,16)}"></div></details>
     </div>
-    <div class="sticky-go"><button class="btn big" id="go">${icon('printer')} Generar etiqueta</button></div>
+    <div class="sticky-go"><button class="btn big" id="go">${ed ? icon('check') + ' Guardar cambios' : icon('printer') + ' Generar etiqueta'}</button></div>
   </form>`;
   document.querySelectorAll('.stepperN button').forEach(b => b.onclick = () => { const i = b.parentNode.querySelector('input'); i.value = Math.max(1, (Number(i.value) || 1) + Number(b.dataset.d)); });
   $('#f').onsubmit = async ev => {
-    ev.preventDefault(); const b = $('#go'); b.disabled = true; b.textContent = 'Generando…';
+    ev.preventDefault(); const b = $('#go'); b.disabled = true; b.textContent = ed ? 'Guardando…' : 'Generando…';
     const f = Object.fromEntries(new FormData(ev.target));
+    if(ed){
+      try{
+        const ts = Date.now();
+        await Store.update(ed.id, cur => {
+          if(cur.estado === 'entregado') throw new Error('El envío ya está entregado');
+          cur.prioridad = f.prio; cur.fecha = f.fecha ? new Date(f.fecha).getTime() : cur.fecha;
+          cur.origen = { sede:f.o_se.trim(), edificio:f.o_ed.trim(), planta:f.o_pl.trim(), persona:f.o_pe.trim() };
+          cur.destino = Object.assign({}, cur.destino, { sede:f.d_se.trim(), edificio:f.d_ed.trim(), planta:f.d_pl.trim(), persona:f.d_pe.trim() });
+          cur.tipo = f.tipo; cur.descripcion = f.desc.trim(); cur.bultos = Number(f.bultos) || 1;
+          cur.modificado = ts; cur.actualizado = ts; return cur;
+        });
+        toast('Cambios guardados. Vuelve a imprimir la etiqueta.');
+        location.hash = '#/envio/' + encodeURIComponent(ed.id);
+      }catch(err){ alert('No se pudo guardar: ' + err.message); b.disabled = false; b.innerHTML = icon('check') + ' Guardar cambios'; }
+      return;
+    }
     try{
       const id = await Store.nextId(); const ts = Date.now();
       const e = {
@@ -664,7 +694,7 @@ function vNuevo(){
         historial:[{ estado:'creado', ts, por:f.o_pe.trim(), lugar:[f.o_se.trim(), f.o_ed.trim()].filter(Boolean).join(' · ') }]
       };
       await Store.save(e);
-      seguir(id);
+      seguir(id); LS.set('env_creados', [id, ...creados()].slice(0, 300));
       LS.set('env_last_origen', e.origen);
       location.hash = '#/envio/' + encodeURIComponent(id) + '/nuevo';
     }catch(err){ alert('No se pudo crear el envío: ' + err.message); b.disabled = false; b.innerHTML = icon('printer') + ' Generar etiqueta'; }
@@ -767,7 +797,7 @@ async function vFicha(id, nuevo){
         <span class="arr">${icon('arrow')}</span>
         <div><small>Para</small><b>${esc(donde(dest))}</b><span>${esc(dest.persona)}</span></div>
       </div>
-      <div class="follow"><button class="btn ghost" id="b-follow"></button></div>
+      <div class="follow btns"><button class="btn ghost" id="b-follow"></button>${puedeEditar(e) ? `<a class="btn ghost" href="#/editar/${encodeURIComponent(e.id)}">${icon('edit')} Modificar</a>` : ''}</div>
     </div>
     ${nuevo ? '' : accion}
     <div class="card"><details class="box" ${etqOpen ? 'open' : ''}><summary>Etiqueta</summary>
@@ -786,6 +816,7 @@ async function vFicha(id, nuevo){
       <dt>Bultos</dt><dd>${e.bultos}</dd>
       <dt>Prioridad</dt><dd>${e.prioridad === 'urgente' ? 'Urgente' : 'Normal'}</dd>
       <dt>Fecha</dt><dd>${fmt(e.fecha)}</dd>
+      ${e.modificado ? `<dt>Modificado</dt><dd>${fmt(e.modificado)}</dd>` : ''}
     </dl></details></div>`;
   $('#b-print').onclick = () => imprimir(e);
   const pintaFollow = () => { const s = sigo(e.id), b = $('#b-follow'); b.className = 'btn ' + (s ? 'sec on-star' : 'ghost'); b.innerHTML = icon('star') + (s ? ' En Mis envíos' : ' Añadir a Mis envíos'); };
