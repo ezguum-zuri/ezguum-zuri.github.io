@@ -376,7 +376,7 @@ const donde = o => [o.sede, o.edificio].filter(Boolean).join(' · ');
 let toastT; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
 
 /* ===== Configuración ===== */
-const DEF = { empresa:'Envíos internos', baseUrl:'', sedes:['Zamudio','Ortuella'], edificios:['106','107','Ballonti'], puestos:['Zamudio · 106','Zamudio · 107','Ortuella · Ballonti'], etiqueta:'100x70', firebase:'', usuario:'', pin:'', pinAdmin:'' };
+const DEF = { empresa:'Envíos internos', baseUrl:'', sedes:['Zamudio','Ortuella'], edificios:['106','108','Ballonti'], puestos:['Zamudio · 106','Zamudio · 108','Ortuella · Ballonti'], etiqueta:'100x70', firebase:'', usuario:'', pin:'', pinAdmin:'' };
 const FIJO = {};
 if(CONFIG_FIJA.empresa) FIJO.empresa = CONFIG_FIJA.empresa;
 if(CONFIG_FIJA.baseUrl) FIJO.baseUrl = CONFIG_FIJA.baseUrl;
