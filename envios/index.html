@@ -255,8 +255,10 @@ details.box[open]>summary{margin-bottom:14px}
 .live::before{content:"";width:8px;height:8px;border-radius:50%;background:#22c55e;animation:blink 1.6s infinite}
 @keyframes blink{50%{opacity:.3}}
 input.pin:not(:placeholder-shown){-webkit-text-security:disc;text-security:disc;letter-spacing:.2em}
-.pu-row{display:grid;grid-template-columns:1fr 1fr 48px;gap:8px;margin-bottom:8px;align-items:center}
+.pu-row{display:grid;grid-template-columns:1fr .8fr 1fr 44px;gap:8px;margin-bottom:8px;align-items:center}
 .pu-row .pu-del{padding:12px 0}
+.pu-row input,.pu-row select{padding:12px 10px;min-width:0}
+@media(max-width:620px){.pu-row{grid-template-columns:1fr 1fr 44px;padding-bottom:10px;border-bottom:1px solid var(--line)}.pu-row .pu-se{grid-column:1/-1}.pu-head{display:none}}
 .pu-head span{font-size:13px;font-weight:600;color:#334155}
 #toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + var(--safe) + 20px);transform:translate(-50%,30px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;font-weight:600;font-size:14px;opacity:0;transition:.25s;z-index:50;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:90vw;text-align:center}
 #toast.on{opacity:1;transform:translate(-50%,0)}
@@ -375,8 +377,8 @@ const fmt = ts => new Date(ts).toLocaleString('es-ES',{day:'2-digit',month:'2-di
 const hora = ts => new Date(ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
 const corto = ts => { const d = new Date(ts), h = new Date(); return d.toDateString() === h.toDateString() ? hora(ts) : d.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'}) + ' ' + hora(ts); };
 const fmtId = (y, n) => `ENV-${y}-${String(n).padStart(6,'0')}`;
-const lugar = o => [o.sede, o.edificio ? 'Edif. ' + o.edificio : '', o.planta ? 'Pl. ' + o.planta : ''].filter(Boolean).join(' · ');
-const donde = o => [o.sede, o.edificio].filter(Boolean).join(' · ');
+const lugar = o => [o.sede, o.edificio ? 'Edif. ' + o.edificio : '', o.punto, o.planta ? 'Pl. ' + o.planta : ''].filter(Boolean).join(' · ');
+const donde = o => [o.sede, o.edificio, o.punto].filter(Boolean).join(' · ');
 let toastT; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
 
 /* ===== Configuración ===== */
@@ -504,11 +506,19 @@ const miPuesto = () => (LS.get('env_rol', {}) || {}).puesto || '';
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const partes = p => String(p).split(/\s*[·,\/|\-–]\s*/).map(x => x.trim()).filter(Boolean);
 const fmtPuesto = p => partes(p).join(' · ');
+/* Un puesto es "Sede · Edificio" (almacén) o "Sede · Edificio · Recepción" */
+function parsePuesto(p){
+  const t = partes(p); let pu = '';
+  if(t.length > 1 && norm(t[t.length - 1]) === 'recepcion'){ t.pop(); pu = 'Recepción'; }
+  return { se:t[0] || '', ed:t[1] || '', pu };
+}
+const textoPuesto = (se, ed, pu) => [se, ed, pu].filter(Boolean).join(' · ');
 function enPuesto(o, puesto){
   if(!puesto || !o) return false;
-  const [ps, pe = ''] = partes(puesto);
-  if(norm(o.sede) !== norm(ps)) return false;
-  return !o.edificio || !pe || norm(o.edificio) === norm(pe);
+  const P = parsePuesto(puesto);
+  if(norm(o.sede) !== norm(P.se)) return false;
+  if(norm(o.punto) !== norm(P.pu)) return false;          // almacén y recepción son puestos distintos
+  return !o.edificio || !P.ed || norm(o.edificio) === norm(P.ed);
 }
 function puedePaso(e, nx){
   const r = rol(); if(r === 'admin') return true; if(r !== 'almacen') return false;
@@ -678,7 +688,7 @@ function vNuevo(ed = null){
     <div class="card"><div class="card-t"><span class="num">1</span>¿Desde dónde sale?</div>
       ${chipsPuesto('o')}
       <div class="f">
-        <div><label class="l">Sede</label><input name="o_se" list="sedes" required value="${esc(last.sede)}" placeholder="Zamudio"></div>
+        <div><label class="l">Sede</label><input name="o_se" list="sedes" required value="${esc(last.sede)}" placeholder="Zamudio"><input type="hidden" name="o_pu" value="${esc(last.punto || '')}"></div>
         <div><label class="l">Edificio</label><input name="o_ed" list="edifs" value="${esc(last.edificio)}" placeholder="106"></div>
         <div class="s2"><label class="l">Planta <i>(opcional)</i></label><input name="o_pl" value="${esc(last.planta)}"></div>
         <div class="s4"><label class="l">Quién lo envía</label><input name="o_pe" required value="${esc(last.persona || (ed ? '' : cfg.usuario))}" placeholder="Nombre y apellido"></div>
@@ -687,7 +697,7 @@ function vNuevo(ed = null){
     <div class="card"><div class="card-t"><span class="num">2</span>¿Para quién es?</div>
       ${chipsPuesto('d')}
       <div class="f">
-        <div><label class="l">Sede</label><input name="d_se" list="sedes" required value="${esc(ds.sede)}" placeholder="Ortuella"></div>
+        <div><label class="l">Sede</label><input name="d_se" list="sedes" required value="${esc(ds.sede)}" placeholder="Ortuella"><input type="hidden" name="d_pu" value="${esc(ds.punto || '')}"></div>
         <div><label class="l">Edificio</label><input name="d_ed" list="edifs" value="${esc(ds.edificio)}" placeholder="Ballonti"></div>
         <div class="s2"><label class="l">Planta <i>(opcional)</i></label><input name="d_pl" value="${esc(ds.planta)}"></div>
         <div class="s4"><label class="l">Quién lo recibe</label><input name="d_pe" required value="${esc(ds.persona)}" placeholder="Nombre y apellido"></div>
@@ -710,12 +720,12 @@ function vNuevo(ed = null){
     <div class="sticky-go"><button class="btn big" id="go">${ed ? icon('check') + ' Guardar cambios' : icon('printer') + ' Generar etiqueta'}</button></div>
   </form>`;
   document.querySelectorAll('.pq').forEach(c => c.onclick = () => {
-    const [se, ed = ''] = partes(c.dataset.p), k = c.dataset.k, f = $('#f');
-    f[k + '_se'].value = se; f[k + '_ed'].value = ed; marcaPuestos();
+    const P = parsePuesto(c.dataset.p), k = c.dataset.k, f = $('#f');
+    f[k + '_se'].value = P.se; f[k + '_ed'].value = P.ed; f[k + '_pu'].value = P.pu; marcaPuestos();
   });
   const marcaPuestos = () => ['o','d'].forEach(k => document.querySelectorAll(`.pq[data-k="${k}"]`).forEach(c => {
-    const [se, ed = ''] = partes(c.dataset.p); c.classList.toggle('on', norm($('#f')[k + '_se'].value) === norm(se) && norm($('#f')[k + '_ed'].value) === norm(ed)); }));
-  ['o_se','o_ed','d_se','d_ed'].forEach(n => $('#f')[n].addEventListener('input', marcaPuestos)); marcaPuestos();
+    const P = parsePuesto(c.dataset.p), f = $('#f'); c.classList.toggle('on', norm(f[k + '_se'].value) === norm(P.se) && norm(f[k + '_ed'].value) === norm(P.ed) && norm(f[k + '_pu'].value) === norm(P.pu)); }));
+  ['o_se','o_ed','d_se','d_ed'].forEach(n => $('#f')[n].addEventListener('input', () => { $('#f')[n[0] + '_pu'].value = ''; marcaPuestos(); })); marcaPuestos();
   document.querySelectorAll('.stepperN button').forEach(b => b.onclick = () => { const i = b.parentNode.querySelector('input'); i.value = Math.max(1, (Number(i.value) || 1) + Number(b.dataset.d)); });
   $('#f').onsubmit = async ev => {
     ev.preventDefault(); const b = $('#go'); b.disabled = true; b.textContent = ed ? 'Guardando…' : 'Generando…';
@@ -726,8 +736,8 @@ function vNuevo(ed = null){
         await Store.update(ed.id, cur => {
           if(cur.estado === 'entregado') throw new Error('El envío ya está entregado');
           cur.prioridad = f.prio; cur.fecha = f.fecha ? new Date(f.fecha).getTime() : cur.fecha;
-          cur.origen = { sede:f.o_se.trim(), edificio:f.o_ed.trim(), planta:f.o_pl.trim(), persona:f.o_pe.trim() };
-          cur.destino = Object.assign({}, cur.destino, { sede:f.d_se.trim(), edificio:f.d_ed.trim(), planta:f.d_pl.trim(), persona:f.d_pe.trim() });
+          cur.origen = { sede:f.o_se.trim(), edificio:f.o_ed.trim(), punto:f.o_pu || '', planta:f.o_pl.trim(), persona:f.o_pe.trim() };
+          cur.destino = Object.assign({}, cur.destino, { sede:f.d_se.trim(), edificio:f.d_ed.trim(), punto:f.d_pu || '', planta:f.d_pl.trim(), persona:f.d_pe.trim() });
           cur.tipo = f.tipo; cur.descripcion = f.desc.trim(); cur.bultos = Number(f.bultos) || 1;
           cur.modificado = ts; cur.actualizado = ts; return cur;
         });
@@ -741,10 +751,10 @@ function vNuevo(ed = null){
       const e = {
         id, estado:'creado', prioridad:f.prio, creado:ts, actualizado:ts,
         fecha: f.fecha ? new Date(f.fecha).getTime() : ts,
-        origen:{ sede:f.o_se.trim(), edificio:f.o_ed.trim(), planta:f.o_pl.trim(), persona:f.o_pe.trim() },
-        destino:{ sede:f.d_se.trim(), edificio:f.d_ed.trim(), planta:f.d_pl.trim(), persona:f.d_pe.trim() },
+        origen:{ sede:f.o_se.trim(), edificio:f.o_ed.trim(), punto:f.o_pu || '', planta:f.o_pl.trim(), persona:f.o_pe.trim() },
+        destino:{ sede:f.d_se.trim(), edificio:f.d_ed.trim(), punto:f.d_pu || '', planta:f.d_pl.trim(), persona:f.d_pe.trim() },
         tipo:f.tipo, descripcion:f.desc.trim(), bultos:Number(f.bultos) || 1,
-        historial:[{ estado:'creado', ts, por:f.o_pe.trim(), lugar:[f.o_se.trim(), f.o_ed.trim()].filter(Boolean).join(' · ') }]
+        historial:[{ estado:'creado', ts, por:f.o_pe.trim(), lugar:[f.o_se.trim(), f.o_ed.trim(), f.o_pu].filter(Boolean).join(' · ') }]
       };
       await Store.save(e);
       seguir(id); LS.set('env_creados', [id, ...creados()].slice(0, 300));
@@ -754,7 +764,7 @@ function vNuevo(ed = null){
   };
 }
 
-const chipsPuesto = k => (cfg.puestos || []).length ? `<div style="margin:-4px 0 12px"><label class="l">Almacén <i>(pulsa uno o escríbelo abajo)</i></label><div class="pills">${cfg.puestos.map(p => `<button type="button" class="chip pq" data-k="${k}" data-p="${esc(p)}">${esc(p)}</button>`).join('')}</div></div>` : '';
+const chipsPuesto = k => (cfg.puestos || []).length ? `<div style="margin:-4px 0 12px"><label class="l">Almacén o recepción <i>(pulsa uno o escríbelo abajo)</i></label><div class="pills">${cfg.puestos.map(p => `<button type="button" class="chip pq" data-k="${k}" data-p="${esc(p)}">${esc(p)}</button>`).join('')}</div></div>` : '';
 
 /* ===== Etiqueta ===== */
 function barSvg(text){
@@ -1071,12 +1081,12 @@ function vAjustes(){
   </div>
   ${acceso}
   ${adm ? `
-  <div class="card"><div class="card-t">Puestos de almacén</div>
-    <p class="muted" style="margin:-6px 0 12px">Cada almacén con su sede y su edificio. Pulsa «Añadir almacén», rellena y luego «Guardar ajustes».</p>
+  <div class="card"><div class="card-t">Puestos de almacén y recepción</div>
+    <p class="muted" style="margin:-6px 0 12px">Cada puesto con su sede, su edificio y si es almacén o recepción. Pulsa «Añadir puesto», rellena y luego «Guardar ajustes».</p>
     <datalist id="sedes-a">${(cfg.sedes || []).map(x => `<option value="${esc(x)}">`).join('')}</datalist>
-    <div class="pu-row pu-head"><span>Sede</span><span>Edificio</span><span></span></div>
-    <div id="pu-list">${(cfg.puestos || []).map(p => filaPuesto(...partes(p))).join('')}</div>
-    <button type="button" class="btn ghost" id="pu-add" style="width:100%;margin-top:4px">${icon('plus')} Añadir almacén</button>
+    <div class="pu-row pu-head"><span>Sede</span><span>Edificio</span><span>Tipo</span><span></span></div>
+    <div id="pu-list">${(cfg.puestos || []).map(p => { const P = parsePuesto(p); return filaPuesto(P.se, P.ed, P.pu); }).join('')}</div>
+    <button type="button" class="btn ghost" id="pu-add" style="width:100%;margin-top:4px">${icon('plus')} Añadir puesto</button>
   </div>
   <div class="card"><div class="card-t">Empresa, sedes y edificios</div>
     <div class="fields" style="margin:0">
@@ -1133,8 +1143,8 @@ function vAjustes(){
     if(lista('#s-se')) cfg.sedes = lista('#s-se');
     if(lista('#s-ed')) cfg.edificios = lista('#s-ed');
     if($('#pu-list')){
-      const filas = [...document.querySelectorAll('#pu-list .pu-row')].map(r => [r.querySelector('.pu-se').value.trim(), r.querySelector('.pu-ed').value.trim()]).filter(([se]) => se);
-      cfg.puestos = filas.map(([se, ed]) => ed ? `${se} · ${ed}` : se);
+      const filas = [...document.querySelectorAll('#pu-list .pu-row')].map(r => [r.querySelector('.pu-se').value.trim(), r.querySelector('.pu-ed').value.trim(), r.querySelector('.pu-pu').value]).filter(([se]) => se);
+      cfg.puestos = filas.map(([se, ed, pu]) => textoPuesto(se, ed, pu));
       // las sedes y edificios nuevos se añaden solos a las sugerencias
       filas.forEach(([se, ed]) => {
         if(!(cfg.sedes || []).some(x => norm(x) === norm(se))) cfg.sedes = [...(cfg.sedes || []), se];
@@ -1162,8 +1172,8 @@ function vAjustes(){
   };
 }
 
-function filaPuesto(se = '', ed = ''){
-  return `<div class="pu-row"><input class="pu-se" list="sedes-a" placeholder="Sede (ej. Zamudio)" value="${esc(se)}"><input class="pu-ed" placeholder="Edificio (ej. 104)" value="${esc(ed)}"><button type="button" class="btn ghost pu-del" title="Quitar" aria-label="Quitar">✕</button></div>`;
+function filaPuesto(se = '', ed = '', pu = ''){
+  return `<div class="pu-row"><input class="pu-se" list="sedes-a" placeholder="Sede" value="${esc(se)}"><input class="pu-ed" placeholder="Edificio" value="${esc(ed)}"><select class="pu-pu"><option value="">Almacén</option><option ${pu ? 'selected' : ''}>Recepción</option></select><button type="button" class="btn ghost pu-del" title="Quitar" aria-label="Quitar">✕</button></div>`;
 }
 
 /* ===== Arranque ===== */
