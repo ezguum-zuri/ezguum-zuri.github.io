@@ -1143,7 +1143,19 @@ function vAjustes(){
         <p class="muted" style="margin:-6px 0 12px">${sesion.nombre ? `Has entrado como <b style="color:var(--ink)">${esc(sesion.nombre)}</b>. ` : ''}Estás en el puesto <b style="color:var(--ink)">${esc(miPuesto())}</b>. Registras la salida de lo que sale de aquí, y el recibí y la entrega de lo que llega aquí.</p>
         ${misPuestos.length > 1 ? `<label class="l">Cambiar de puesto</label><select id="ac-cambia">${opPuestos}</select>` : ''}
         <div class="btns" style="margin-top:12px"><button class="btn ghost" id="ac-salir">Salir del modo almacén</button></div>
-      </div>`;
+      </div>
+      ${personas && yo ? `<div class="card"><div class="card-t">${icon('userCheck')} Personas de ${esc(miPuesto())}</div>
+        <p class="muted" style="margin:-6px 0 4px">Puedes dar de alta a un compañero de este puesto. Para cambiarle el PIN o quitarlo, habla con el administrador.</p>
+        <div id="co-list"></div>
+        <div id="co-form" class="per-form" hidden>
+          <div class="fields" style="margin:0">
+            <div><label class="l">Nombre y apellido</label><input id="co-nom" autocomplete="off"></div>
+            <div><label class="l">PIN personal <i>(4 a 8 cifras)</i></label><div class="row-in"><input id="co-pin" inputmode="numeric" autocomplete="off" style="text-transform:none"><button type="button" class="btn ghost" id="co-gen">Generar</button></div></div>
+          </div>
+          <div class="btns" style="margin-top:12px"><button type="button" class="btn" id="co-ok">${icon('check')} Dar de alta</button><button type="button" class="btn ghost" id="co-cancel">Cancelar</button></div>
+        </div>
+        <button type="button" class="btn ghost" id="co-add" style="width:100%;margin-top:6px">${icon('plus')} Añadir compañero</button>
+      </div>` : ''}`;
     else acceso = `
       <div class="card"><div class="card-t">${icon('lock')} Administrador</div>
         <p class="muted" style="margin:-6px 0 12px">Puedes hacer cualquier paso desde cualquier sitio y configurar la app.</p>
@@ -1151,7 +1163,7 @@ function vAjustes(){
   }
   const cardPersonas = adm && nube ? `
   <div class="card"><div class="card-t">${icon('userCheck')} Personas de almacén y recepción</div>
-    <p class="muted" style="margin:-6px 0 4px">Cada persona entra con su nombre y su PIN personal. Si la borras o le cambias el PIN, se le cierra la sesión en su aparato al momento.</p>
+    <p class="muted" style="margin:-6px 0 4px">Cada persona entra con su nombre y su PIN personal. Da de alta tú a la primera de cada puesto; después, cualquiera de ese puesto puede añadir a sus compañeros. Si la borras o le cambias el PIN, se le cierra la sesión en su aparato al momento.</p>
     ${personas ? '' : `<div class="warn" id="per-warn">${icon('alert')}<div>Ahora se entra con el PIN común de almacén. En cuanto des de alta a la primera persona, el PIN común deja de valer y cada uno entra con el suyo.</div></div>`}
     <div id="per-list"></div>
     <div id="per-form" class="per-form" hidden>
@@ -1237,7 +1249,7 @@ function vAjustes(){
       const pin = $('#ac-pin').value.replace(/\D/g, ''), puesto = $('#ac-puesto').value;
       if(usaPersonas()){
         const u = userDe($('#ac-user').value);
-        if(!u){ toast($('#ac-user').disabled ? 'Pide al administrador que te dé de alta en este puesto' : 'Elige tu nombre'); return; }
+        if(!u){ toast($('#ac-user').disabled ? 'Pide a un compañero de este puesto o al administrador que te dé de alta' : 'Elige tu nombre'); return; }
         if(await hashPin(u.id, pin) !== u.pinHash){ fallo(); $('#ac-pin').select(); return; }
         acierto(); LS.set('env_rol', { rol:'almacen', uid:u.id, nombre:u.nombre, puesto, h:u.pinHash });
         if(!cfg.usuario){ cfg.usuario = u.nombre; saveCfg(); }
@@ -1308,6 +1320,37 @@ function vAjustes(){
       b.disabled = false;
     };
   }
+  if($('#co-list')){
+    pintaCompas();
+    const form = $('#co-form');
+    const cierra = () => { form.hidden = true; $('#co-add').hidden = false; };
+    $('#co-add').onclick = () => { form.hidden = false; $('#co-add').hidden = true; $('#co-nom').value = ''; $('#co-pin').value = ''; $('#co-nom').focus(); };
+    $('#co-cancel').onclick = cierra;
+    $('#co-gen').onclick = () => { $('#co-pin').value = nuevoPin(); };
+    $('#co-ok').onclick = async () => {
+      const puesto = miPuesto(), r0 = LS.get('env_rol', {}) || {}, yo = userDe(r0.uid);
+      if(rol() !== 'almacen' || !yo){ toast('Vuelve a entrar en tu puesto'); return; }
+      const nombre = $('#co-nom').value.trim().replace(/\s+/g, ' '), pin = $('#co-pin').value.replace(/\D/g, '');
+      if(!nombre){ toast('Escribe el nombre'); $('#co-nom').focus(); return; }
+      const ya = USERS.find(u => norm(u.nombre) === norm(nombre));
+      if(ya && (ya.puestos || []).includes(puesto)){ toast(ya.nombre + ' ya está en este puesto'); return; }
+      if(!ya && !/^\d{4,8}$/.test(pin)){ toast('El PIN tiene que tener de 4 a 8 cifras'); $('#co-pin').focus(); return; }
+      if(ya && !confirm(`${ya.nombre} ya está dado de alta en otro puesto.\n\n¿Añadirle también ${puesto}? Seguirá entrando con su PIN de siempre.`)) return;
+      const b = $('#co-ok'); b.disabled = true;
+      try{
+        const por = { uid:yo.id, nombre:yo.nombre, puesto, ts:Date.now() };
+        if(ya){
+          await Cloud.db.collection('usuarios').doc(ya.id).set({ puestos:[...(ya.puestos || []), puesto], actualizado:Date.now(), ampliadoPor:por }, { merge:true });
+          cierra(); toast(ya.nombre + ' añadido a ' + puesto);
+        } else {
+          const ref = Cloud.db.collection('usuarios').doc();
+          await ref.set({ nombre, puestos:[puesto], pinHash:await hashPin(ref.id, pin), creado:Date.now(), actualizado:Date.now(), altaPor:por });
+          cierra(); alert(`PIN de ${nombre}: ${pin}\n\nDáselo en persona. No se puede volver a ver; si lo olvida, el administrador se lo cambia.`);
+        }
+      }catch(err){ alert('No se pudo guardar: ' + err.message); }
+      b.disabled = false;
+    };
+  }
   if($('#seg-adm')) $('#seg-adm').onclick = async () => {
     const p1 = prompt('Nuevo PIN de administrador (de 6 a 8 cifras):'); if(p1 === null) return;
     const pin = p1.replace(/\D/g, '');
@@ -1360,14 +1403,22 @@ function vAjustes(){
   };
 }
 
+function pintaCompas(){
+  const box = $('#co-list'); if(!box) return;
+  const l = USERS.filter(u => (u.puestos || []).includes(miPuesto()));
+  box.innerHTML = l.length ? l.map(u => `<div class="per-row"><div><b>${esc(u.nombre)}</b><span class="t">${u.ultimoAcceso ? 'Último acceso: ' + corto(u.ultimoAcceso) : 'Todavía no ha entrado'}</span></div></div>`).join('')
+    : '<div class="t muted" style="font-size:13px;padding:4px 0">Nadie todavía</div>';
+}
+const textoAlta = u => u.altaPor ? `Alta: ${esc(u.altaPor.nombre)} · ${corto(u.altaPor.ts)}` : u.creado ? `Alta: administrador · ${corto(u.creado)}` : '';
 function pintaPersonas(){
+  pintaCompas();
   const box = $('#per-list'); if(!box) return;
   if(usaPersonas()){ if($('#per-warn')) $('#per-warn').remove(); if($('#seg-comun')) $('#seg-comun').textContent = 'Desactivado: cada persona entra con el suyo'; }
   const grupos = (cfg.puestos || []).map(p => [p, USERS.filter(u => (u.puestos || []).includes(p))]);
   const sin = USERS.filter(u => !(u.puestos || []).some(p => (cfg.puestos || []).includes(p)));
   if(sin.length) grupos.push(['Sin puesto válido (revisar)', sin]);
   box.innerHTML = grupos.map(([p, l]) => `<div class="per-g"><div class="per-h"><b>${esc(p)}</b><span class="muted">${l.length} ${l.length === 1 ? 'persona' : 'personas'}</span></div>
-    ${l.length ? l.map(u => `<div class="per-row"><div><b>${esc(u.nombre)}</b><span class="t">${u.ultimoAcceso ? 'Último acceso: ' + corto(u.ultimoAcceso) : 'Todavía no ha entrado'}</span></div>
+    ${l.length ? l.map(u => `<div class="per-row"><div><b>${esc(u.nombre)}</b><span class="t">${u.ultimoAcceso ? 'Último acceso: ' + corto(u.ultimoAcceso) : 'Todavía no ha entrado'}</span>${textoAlta(u) ? `<span class="t">${textoAlta(u)}</span>` : ''}</div>
       <button type="button" class="btn ghost sm" data-a="pin" data-id="${esc(u.id)}">Cambiar PIN</button><button type="button" class="btn ghost sm" data-a="ed" data-id="${esc(u.id)}">Editar</button><button type="button" class="btn ghost sm del" data-a="del" data-id="${esc(u.id)}">Borrar</button></div>`).join('')
       : '<div class="t muted" style="font-size:13px;padding:4px 0">Nadie todavía</div>'}</div>`).join('');
 }
