@@ -586,6 +586,19 @@ function enPuesto(o, puesto){
   if(norm(o.punto) !== norm(P.pu)) return false;          // almacén y recepción son puestos distintos
   return !o.edificio || !P.ed || norm(o.edificio) === norm(P.ed);
 }
+/* Personas dadas de alta en el puesto que hace el paso: origen para la salida, destino para recibir y entregar */
+function personasPaso(e, nx){
+  if(!usaPersonas()) return [];
+  const o = nx === 'transito' ? e.origen : e.destino;
+  const ps = rol() === 'almacen' ? [miPuesto()] : (cfg.puestos || []).filter(p => enPuesto(o, p));
+  return [...new Set(USERS.filter(u => (u.puestos || []).some(p => ps.includes(p))).map(u => u.nombre))].sort((a, b) => a.localeCompare(b, 'es'));
+}
+function campoPor(e, nx){
+  const l = personasPaso(e, nx), yo = nx !== 'transito' ? miNombre() : '';
+  const inp = (val, oculto, list) => `<input id="a-por" value="${esc(val)}" placeholder="Nombre y apellido" autocomplete="off"${list ? ' list="a-por-l"' : ''}${oculto ? ' hidden style="margin-top:8px"' : ''}>`;
+  if(nx === 'transito' || !l.length) return inp(yo, false, l.length) + (l.length ? `<datalist id="a-por-l">${l.map(n => `<option value="${esc(n)}">`).join('')}</datalist>` : '');
+  return `<select id="a-por-sel">${yo && l.includes(yo) ? '' : '<option value="">Elige quién…</option>'}${l.map(n => `<option ${n === yo ? 'selected' : ''}>${esc(n)}</option>`).join('')}<option value="__otro">Otra persona…</option></select>` + inp('', true);
+}
 function puedePaso(e, nx){
   const r = rol(); if(r === 'admin') return true; if(r !== 'almacen') return false;
   return nx === 'transito' ? enPuesto(e.origen, miPuesto()) : enPuesto(e.destino, miPuesto());
@@ -894,7 +907,7 @@ async function vFicha(id, nuevo){
     accion = `<div class="card next-card" style="--c:${col(nx)}">
       <div class="next-head"><span class="next-ic">${icon(ESTADOS[nx].icon)}</span><div><small>Paso ${idx + 2} de 4</small><b>${P.titulo}</b><p>${esc(P.texto(e))}</p></div></div>
       <div class="fields">
-        <div><label class="l">${{ transito:'Quién se lo lleva <i>(el que lo recoge en origen)</i>', recibido:'Quién lo recibe en destino', entregado:'Quién lo entrega' }[nx]}</label><input id="a-por" value="${nx !== 'transito' ? esc(miNombre()) : ''}" placeholder="Nombre y apellido" autocomplete="off"></div>
+        <div><label class="l">${{ transito:'Quién se lo lleva <i>(el que lo recoge en origen)</i>', recibido:'Quién lo recibe en destino', entregado:'Quién lo entrega' }[nx]}</label>${campoPor(e, nx)}</div>
         ${nx === 'recibido' ? `<div><label class="l">Dónde se recibe</label><input id="a-lugar" value="${esc(donde(dest))}"></div>` : ''}
         ${nx === 'entregado' ? `<div><label class="l">Lo recoge</label><input id="a-rec" value="" placeholder="Ej.: ${esc(dest.persona)}" autocomplete="off"></div>
           <div><label class="l">Firma <i>(opcional)</i></label><div class="sig-w"><canvas class="sig" id="sig"></canvas><span class="ph" id="sig-ph">Firma aquí con el dedo</span><button class="btn ghost" type="button" id="sig-clr">Borrar</button></div></div>` : ''}
@@ -963,9 +976,10 @@ async function vFicha(id, nuevo){
   if(puede){
     const sig = nx === 'entregado' ? firmaPad($('#sig')) : null;
     if(sig) $('#sig-clr').onclick = () => { sig.clear(); $('#sig-ph').style.display = ''; };
+    if($('#a-por-sel')) $('#a-por-sel').onchange = ev => { const o = ev.target.value === '__otro'; $('#a-por').hidden = !o; if(o) $('#a-por').focus(); };
     $('#a-go').onclick = async () => {
-      const por = $('#a-por').value.trim();
-      if(!por){ toast(nx === 'transito' ? 'Escribe quién se lleva el paquete' : 'Escribe tu nombre'); $('#a-por').focus(); return; }
+      const sel = $('#a-por-sel'), por = (sel && sel.value !== '__otro' ? sel.value : $('#a-por').value).trim();
+      if(!por){ toast(sel && sel.value === '' ? 'Elige quién lo registra' : nx === 'transito' ? 'Escribe quién se lleva el paquete' : 'Escribe el nombre'); (sel && sel.value === '' ? sel : $('#a-por')).focus(); return; }
       const ev = { estado:nx, ts:Date.now(), por, nota:$('#a-nota').value.trim() };
       const reg = rol() === 'admin' ? 'Administrador' : miNombre(); if(reg) ev.registra = reg;
       if(nx === 'transito') ev.lugar = donde(e.origen);
