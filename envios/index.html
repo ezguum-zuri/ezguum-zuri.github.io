@@ -1000,16 +1000,18 @@ function idDesde(txt){
 }
 function abrirEnvio(id){ const h = '#/envio/' + encodeURIComponent(id); if(location.hash === h) route(); else location.hash = h; }
 function vScan(){
-  const alm = esAlmacen();
-  $('#app').innerHTML = `<div class="h1">${alm ? 'Escanear' : 'Consultar envío'}</div><p class="sub">${alm ? 'Apunta al QR de la etiqueta.' : 'Escanea el QR o escribe el código de seguimiento.'}</p>
-    <div class="scan"><video id="v" playsinline muted></video><div class="frame"></div><div class="line"></div><div class="st" id="st">Iniciando cámara…</div></div>
-    <div class="card"><label class="l">Escribe el código o usa la pistola lectora</label>
-      <div class="row-in"><input id="mid" placeholder="ENV-${new Date().getFullYear()}-000123" autocapitalize="characters"><button class="btn" id="mgo">${icon('arrow')}</button></div>
-      <p class="muted" style="margin:12px 0 0">Con pistola: dispara al QR y se abre el envío. Funciona en cualquier pantalla de la app. En el móvil también puedes usar la cámara normal.</p></div>`;
-  $('#mgo').onclick = () => { const v = $('#mid').value.trim(); const id = idDesde(v) || v.toUpperCase(); if(id){ stopScanner(); abrirEnvio(id); } };
-  if(!matchMedia('(pointer:coarse)').matches) $('#mid').focus();
+  const alm = esAlmacen(), tactil = matchMedia('(pointer:coarse)').matches;
+  const manual = `<div class="card"><label class="l">Escribe el número del envío <i>(vale solo el número, ej. 15)</i> o usa la pistola lectora</label>
+      <div class="row-in"><input id="mid" inputmode="text" placeholder="Ej.: 15" autocapitalize="characters" autocomplete="off"><button class="btn" id="mgo">${icon('arrow')} Abrir</button></div>
+      <p class="muted" style="margin:12px 0 0">Con pistola: dispara al código y se abre el envío. Funciona en cualquier pantalla de la app.${tactil ? ' En el móvil también puedes usar la cámara normal.' : ''}</p></div>`;
+  const camara = `<div class="scan" id="scanbox"><video id="v" playsinline muted></video><div class="frame"></div><div class="line"></div><div class="st" id="st">Iniciando cámara…</div></div>`;
+  $('#app').innerHTML = `<div class="h1">${alm ? 'Escanear' : 'Consultar envío'}</div><p class="sub">${tactil ? 'Apunta al QR de la etiqueta o escribe el número.' : 'Escribe el número del envío o usa la pistola.'}</p>
+    ${tactil ? camara + manual : manual + camara}`;
+  $('#mgo').onclick = () => { const v = $('#mid').value.trim(); if(!v) return; const id = idDesde(v) || (/^\d{1,6}$/.test(v) ? fmtId(new Date().getFullYear(), +v) : v.toUpperCase()); stopScanner(); abrirEnvio(id); };
+  if(!tactil) $('#mid').focus();
   $('#mid').onkeydown = ev => { if(ev.key === 'Enter') $('#mgo').click(); };
-  if(!navigator.mediaDevices?.getUserMedia){ $('#st').textContent = 'La cámara no está disponible aquí (hace falta https).'; return; }
+  const sinCamara = () => { const b = $('#scanbox'); if(b) b.remove(); };
+  if(!navigator.mediaDevices?.getUserMedia){ sinCamara(); return; }
   const ok = txt => { const id = idDesde(txt); if(!id){ $('#st').textContent = 'Ese QR no es de un envío'; return false; }
     if(navigator.vibrate) navigator.vibrate(80); stopScanner(); abrirEnvio(id); return true; };
   navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1920 }, height:{ ideal:1080 } }, audio:false }).then(async s => {
@@ -1041,7 +1043,10 @@ function vScan(){
       raf = requestAnimationFrame(tick);
     };
     tick();
-  }).catch(err => { $('#st').textContent = err.name === 'NotAllowedError' ? 'Sin permiso para la cámara. Actívalo en los ajustes del navegador.' : 'No se pudo abrir la cámara: ' + err.message; });
+  }).catch(err => {
+    if(err.name === 'NotAllowedError'){ if($('#st')) $('#st').textContent = 'Sin permiso para la cámara. Actívalo en los ajustes del navegador.'; }
+    else sinCamara();   // equipo sin cámara: solo queda el campo para escribir o la pistola
+  });
 }
 
 /* ===== Vista: ajustes ===== */
