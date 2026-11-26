@@ -32,8 +32,11 @@ button{font:inherit;color:inherit}
 .brand{font-weight:700;font-size:17px;letter-spacing:-.01em;line-height:1.1}
 .brand small{display:block;font-weight:500;font-size:12px;color:var(--mute)}
 .tr{margin-left:auto;display:flex;gap:6px;align-items:center}
-.rol{font-size:12px;font-weight:700;padding:6px 10px;border-radius:99px;background:var(--ink);color:#fff;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rol{font-size:12px;font-weight:700;padding:6px 12px;border-radius:14px;background:var(--ink);color:#fff;max-width:min(52vw,340px);line-height:1.2;text-align:center}
+.rol small{display:block;font-weight:500;font-size:11px;opacity:.75}
+.rol,.rol small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rol:empty{display:none}
+@media(max-width:520px){.brand small{display:none}.brand{font-size:15px}body.con-rol .brand{display:none}.rol{max-width:62vw}}
 .rf-btn{width:36px;height:36px;border-radius:50%;border:0;background:#fff;box-shadow:var(--sh);display:grid;place-items:center;cursor:pointer;color:var(--ink);flex:none}
 .rf-btn svg.i{width:18px;height:18px}
 .rf-btn.spin svg{animation:spin .7s linear infinite}
@@ -258,6 +261,17 @@ input.pin:not(:placeholder-shown){-webkit-text-security:disc;text-security:disc;
 .pu-row{display:grid;grid-template-columns:1fr .8fr 1fr 44px;gap:8px;margin-bottom:8px;align-items:center}
 .pu-row .pu-del{padding:12px 0}
 .pu-row input,.pu-row select{padding:12px 10px;min-width:0}
+.per-g{border-top:1px solid var(--line);padding:12px 0 6px}
+.per-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
+.per-row{display:flex;align-items:center;gap:6px;padding:7px 0;flex-wrap:wrap}
+.per-row>div{flex:1;min-width:150px;display:flex;flex-direction:column}
+.per-row .t{font-size:12px;color:var(--mute)}
+.btn.sm{padding:8px 11px;font-size:13px;border-radius:10px}
+.btn.del{color:#b91c1c}
+.per-form{background:var(--soft);border-radius:14px;padding:14px;margin:10px 0}
+.pu-checks{display:flex;flex-wrap:wrap;gap:8px}
+.pu-checks label{display:flex;gap:7px;align-items:center;background:#fff;padding:8px 11px;border-radius:10px;font-size:14px;cursor:pointer;border:1.5px solid var(--line)}
+.pu-checks input{width:auto;padding:0;margin:0}
 @media(max-width:620px){.pu-row{grid-template-columns:1fr 1fr 44px;padding-bottom:10px;border-bottom:1px solid var(--line)}.pu-row .pu-se{grid-column:1/-1}.pu-head{display:none}}
 .pu-head span{font-size:13px;font-weight:600;color:#334155}
 #toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + var(--safe) + 20px);transform:translate(-50%,30px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;font-weight:600;font-size:14px;opacity:0;transition:.25s;z-index:50;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:90vw;text-align:center}
@@ -485,7 +499,10 @@ function pintaModo(){
   if(modoError){ c.className = 'conn err'; c.textContent = 'Error de conexión'; c.title = modoError; }
   else if(Store === Cloud){ c.className = 'conn cloud'; c.textContent = 'Conectado'; c.title = 'Los envíos se comparten entre todos los dispositivos'; }
   else { c.className = 'conn local'; c.textContent = 'Solo este equipo'; c.title = 'Los envíos solo se guardan en este dispositivo. Conecta Firebase en Ajustes.'; }
-  const r = rol(); $('#rol').textContent = (cfg.pin || cfg.pinAdmin) ? (r === 'admin' ? 'Admin' : r === 'almacen' ? miPuesto() : '') : '';
+  const r = rol(), rc = $('#rol'), nom = (LS.get('env_rol', {}) || {}).nombre;
+  rc.innerHTML = hayPin() ? (r === 'admin' ? 'Admin' : r === 'almacen' ? esc(miPuesto()) + (nom ? `<small>${esc(nom)}</small>` : '') : '') : '';
+  document.body.classList.toggle('con-rol', !!rc.innerHTML);
+  rc.title = r === 'almacen' ? [nom, miPuesto()].filter(Boolean).join(' · ') : '';
   $('#h-emp').textContent = cfg.empresa || 'Envíos internos';
   document.title = (cfg.empresa || 'Envíos') + ' · Envíos internos';
   $('#page-style').textContent = cfg.etiqueta === 'A4' ? '@page{size:A4;margin:10mm}' : '@page{size:100mm 70mm;margin:0}';
@@ -493,16 +510,65 @@ function pintaModo(){
 
 /* ===== Navegación ===== */
 /* Roles: trabajador (crea y consulta) · almacén (con PIN y puesto) · administrador (todo) */
+/* Personas: con Firebase, cada persona de almacén/recepción tiene su nombre, sus puestos y su PIN personal.
+   El administrador las da de alta, les cambia el PIN o las borra; al hacerlo se les cierra la sesión al momento.
+   Mientras no haya ninguna persona dada de alta se sigue usando el PIN común de almacén. */
+let USERS = [], SEG = {};
+async function sha(t){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+const hashPin = (id, pin) => sha('envios:' + id + ':' + pin);
+const usaPersonas = () => Store === Cloud && (!!SEG.modoPersonas || USERS.length > 0);
+const userDe = uid => USERS.find(u => u.id === uid);
+const hayPinAdmin = () => !!(SEG.adminHash || cfg.pinAdmin);
+const hayPin = () => hayPinAdmin() || usaPersonas() || !!cfg.pin;
+const nuevoPin = () => String(Math.floor(100000 + Math.random() * 900000));
 function rol(){
-  if(!cfg.pin && !cfg.pinAdmin) return 'admin';
+  if(!hayPin()) return 'admin';
   const r = LS.get('env_rol', {}) || {};
-  if(r.rol === 'admin' && cfg.pinAdmin && r.pin === cfg.pinAdmin) return 'admin';
-  if(r.rol === 'almacen' && cfg.pin && r.pin === cfg.pin && r.puesto) return 'almacen';
+  if(r.rol === 'admin' && (SEG.adminHash ? r.h === SEG.adminHash : (cfg.pinAdmin && r.pin === cfg.pinAdmin))) return 'admin';
+  if(r.rol === 'almacen' && r.puesto){
+    if(usaPersonas()){ const u = userDe(r.uid); if(u && u.pinHash === r.h && (u.puestos || []).includes(r.puesto)) return 'almacen'; }
+    else if(cfg.pin && r.pin === cfg.pin) return 'almacen';
+  }
   return 'trabajador';
 }
+const claveRol = () => rol() + '|' + miPuesto();
+function cargarSeguridad(){
+  if(Store !== Cloud) return Promise.resolve();
+  return new Promise(ok => {
+    const listo = { u:false, s:false }; let hecho = false;
+    const fin = () => { if(!hecho){ hecho = true; ok(); } };
+    setTimeout(fin, 6000);
+    const tras = (k, aplicar) => {
+      const antes = hecho ? claveRol() : null;
+      aplicar(); listo[k] = true;
+      if(!hecho){ if(listo.u && listo.s) fin(); return; }
+      if(claveRol() !== antes){
+        const r0 = LS.get('env_rol', {}) || {};
+        if(rol() === 'trabajador' && r0.rol){ LS.set('env_rol', {}); alert('Tu sesión se ha cerrado: el administrador ha cambiado tu acceso. Vuelve a entrar desde Ajustes si hace falta.'); }
+        pintaModo(); route();
+      } else { pintaModo(); pintaPersonas(); }
+    };
+    Cloud.db.collection('usuarios').onSnapshot(
+      q => tras('u', () => { USERS = q.docs.map(d => Object.assign({ id:d.id }, d.data())).sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es')); }),
+      () => tras('u', () => {}));
+    Cloud.db.collection('config').doc('seguridad').onSnapshot(
+      s => tras('s', () => { SEG = s.exists ? s.data() : {}; }),
+      () => tras('s', () => {}));
+  });
+}
+function marcaAcceso(){
+  const r = LS.get('env_rol', {}) || {}, u = userDe(r.uid);
+  if(rol() !== 'almacen' || !u || Date.now() - (u.ultimoAcceso || 0) < 3600000) return;
+  Cloud.db.collection('usuarios').doc(u.id).set({ ultimoAcceso:Date.now() }, { merge:true }).catch(() => {});
+}
+/* Bloqueo tras varios PIN incorrectos en este aparato */
+function bloqueado(){ const f = LS.get('env_fallos', {}); if(f.hasta && f.hasta > Date.now()){ toast(`Demasiados intentos. Espera ${Math.ceil((f.hasta - Date.now()) / 1000)} s`); return true; } return false; }
+function fallo(){ const f = LS.get('env_fallos', {}); f.n = (f.n || 0) + 1; if(f.n >= 5){ f.hasta = Date.now() + 120000; f.n = 0; } LS.set('env_fallos', f); toast('PIN incorrecto'); }
+const acierto = () => LS.set('env_fallos', {});
 const esAlmacen = () => rol() !== 'trabajador';
-const esAdmin = () => rol() === 'admin' || (rol() === 'almacen' && !cfg.pinAdmin);
+const esAdmin = () => rol() === 'admin' || (rol() === 'almacen' && !hayPinAdmin());
 const miPuesto = () => (LS.get('env_rol', {}) || {}).puesto || '';
+const miNombre = () => rol() === 'almacen' ? ((LS.get('env_rol', {}) || {}).nombre || '') : '';
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const partes = p => String(p).split(/\s*[·,\/|\-–]\s*/).map(x => x.trim()).filter(Boolean);
 const fmtPuesto = p => partes(p).join(' · ');
@@ -828,7 +894,7 @@ async function vFicha(id, nuevo){
     accion = `<div class="card next-card" style="--c:${col(nx)}">
       <div class="next-head"><span class="next-ic">${icon(ESTADOS[nx].icon)}</span><div><small>Paso ${idx + 2} de 4</small><b>${P.titulo}</b><p>${esc(P.texto(e))}</p></div></div>
       <div class="fields">
-        <div><label class="l">${{ transito:'Quién se lo lleva <i>(el que lo recoge en origen)</i>', recibido:'Quién lo recibe en destino', entregado:'Quién lo entrega' }[nx]}</label><input id="a-por" value="" placeholder="Nombre y apellido" autocomplete="off"></div>
+        <div><label class="l">${{ transito:'Quién se lo lleva <i>(el que lo recoge en origen)</i>', recibido:'Quién lo recibe en destino', entregado:'Quién lo entrega' }[nx]}</label><input id="a-por" value="${nx !== 'transito' ? esc(miNombre()) : ''}" placeholder="Nombre y apellido" autocomplete="off"></div>
         ${nx === 'recibido' ? `<div><label class="l">Dónde se recibe</label><input id="a-lugar" value="${esc(donde(dest))}"></div>` : ''}
         ${nx === 'entregado' ? `<div><label class="l">Lo recoge</label><input id="a-rec" value="" placeholder="Ej.: ${esc(dest.persona)}" autocomplete="off"></div>
           <div><label class="l">Firma <i>(opcional)</i></label><div class="sig-w"><canvas class="sig" id="sig"></canvas><span class="ph" id="sig-ph">Firma aquí con el dedo</span><button class="btn ghost" type="button" id="sig-clr">Borrar</button></div></div>` : ''}
@@ -845,6 +911,7 @@ async function vFicha(id, nuevo){
   const hist = e.historial.slice().reverse().map(h => `<li style="--c:${col(h.estado)}"><span class="d">${icon(ESTADOS[h.estado].icon)}</span><div>
       <b>${esc(h.estado === 'creado' ? 'Envío creado' : ESTADOS[h.estado].paso)}</b> <span class="t">· ${fmt(h.ts)}</span>
       <div class="t">${{ creado:'Creado por', transito:'Se lo llevó', recibido:'Recibido por', entregado:'Entregado por' }[h.estado]} ${esc(h.por)}${h.lugar ? ' · ' + esc(h.lugar) : ''}</div>
+      ${h.registra && h.registra !== h.por ? `<div class="t">Registrado por ${esc(h.registra)}</div>` : ''}
       ${h.receptor ? `<div class="t">Lo recogió <b style="color:var(--ink);font-size:13px">${esc(h.receptor)}</b></div>` : ''}
       ${h.nota ? `<div class="t">“${esc(h.nota)}”</div>` : ''}
       ${h.firma ? `<img src="${h.firma}" alt="Firma">` : ''}</div></li>`).join('');
@@ -900,6 +967,7 @@ async function vFicha(id, nuevo){
       const por = $('#a-por').value.trim();
       if(!por){ toast(nx === 'transito' ? 'Escribe quién se lleva el paquete' : 'Escribe tu nombre'); $('#a-por').focus(); return; }
       const ev = { estado:nx, ts:Date.now(), por, nota:$('#a-nota').value.trim() };
+      const reg = rol() === 'admin' ? 'Administrador' : miNombre(); if(reg) ev.registra = reg;
       if(nx === 'transito') ev.lugar = donde(e.origen);
       if(nx === 'recibido') ev.lugar = $('#a-lugar').value.trim() || donde(dest);
       if(nx === 'entregado'){
@@ -1052,24 +1120,28 @@ function vScan(){
 /* ===== Vista: ajustes ===== */
 function vAjustes(){
   limpiar();
-  const r = rol(), adm = esAdmin(), hayPin = !!(cfg.pin || cfg.pinAdmin);
-  const opPuestos = (cfg.puestos || []).map(p => `<option ${p === miPuesto() ? 'selected' : ''}>${esc(p)}</option>`).join('');
+  const r = rol(), adm = esAdmin(), personas = usaPersonas(), nube = Store === Cloud;
+  const sesion = LS.get('env_rol', {}) || {}, yo = userDe(sesion.uid);
+  const misPuestos = personas && r === 'almacen' && yo ? (cfg.puestos || []).filter(p => (yo.puestos || []).includes(p)) : (cfg.puestos || []);
+  const opPuestos = misPuestos.map(p => `<option ${p === miPuesto() ? 'selected' : ''}>${esc(p)}</option>`).join('');
+  const inPin = (id, ph) => `<input id="${id}" class="pin" type="text" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="${ph}" style="text-transform:none">`;
   let acceso = '';
-  if(hayPin){
+  if(hayPin()){
     if(r === 'trabajador') acceso = `
       <div class="card"><div class="card-t">${icon('lock')} Acceso de almacén</div>
-        <p class="muted" style="margin:-6px 0 12px">Solo para almacén y recepción. Elige dónde estás: solo podrás registrar la salida de los envíos que salen de tu puesto, y el recibí y la entrega de los que llegan a él.</p>
+        <p class="muted" style="margin:-6px 0 12px">Solo para almacén y recepción. Solo podrás registrar la salida de los envíos que salen de tu puesto, y el recibí y la entrega de los que llegan a él.</p>
         <div class="fields" style="margin:0">
           <div><label class="l">Mi puesto</label><select id="ac-puesto">${opPuestos}</select></div>
-          <div class="row-in"><input id="ac-pin" class="pin" type="text" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="PIN de almacén" style="text-transform:none"><button class="btn" id="ac-alm">Entrar</button></div>
+          ${personas ? `<div><label class="l">Quién eres</label><select id="ac-user"></select></div>` : ''}
+          <div class="row-in">${inPin('ac-pin', personas ? 'Tu PIN personal' : 'PIN de almacén')}<button class="btn" id="ac-alm">Entrar</button></div>
         </div>
       </div>
-      ${cfg.pinAdmin ? `<div class="card"><div class="card-t">${icon('lock')} Administrador</div>
-        <div class="row-in"><input id="ad-pin" class="pin" type="text" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="PIN de administrador" style="text-transform:none"><button class="btn ghost" id="ac-adm">Entrar</button></div></div>` : ''}`;
+      ${hayPinAdmin() ? `<div class="card"><div class="card-t">${icon('lock')} Administrador</div>
+        <div class="row-in">${inPin('ad-pin', 'PIN de administrador')}<button class="btn ghost" id="ac-adm">Entrar</button></div></div>` : ''}`;
     else if(r === 'almacen') acceso = `
       <div class="card"><div class="card-t">${icon('lock')} Modo almacén</div>
-        <p class="muted" style="margin:-6px 0 12px">Estás en el puesto <b style="color:var(--ink)">${esc(miPuesto())}</b>. Registras la salida de lo que sale de aquí, y el recibí y la entrega de lo que llega aquí.</p>
-        <label class="l">Cambiar de puesto</label><select id="ac-cambia">${opPuestos}</select>
+        <p class="muted" style="margin:-6px 0 12px">${sesion.nombre ? `Has entrado como <b style="color:var(--ink)">${esc(sesion.nombre)}</b>. ` : ''}Estás en el puesto <b style="color:var(--ink)">${esc(miPuesto())}</b>. Registras la salida de lo que sale de aquí, y el recibí y la entrega de lo que llega aquí.</p>
+        ${misPuestos.length > 1 ? `<label class="l">Cambiar de puesto</label><select id="ac-cambia">${opPuestos}</select>` : ''}
         <div class="btns" style="margin-top:12px"><button class="btn ghost" id="ac-salir">Salir del modo almacén</button></div>
       </div>`;
     else acceso = `
@@ -1077,6 +1149,29 @@ function vAjustes(){
         <p class="muted" style="margin:-6px 0 12px">Puedes hacer cualquier paso desde cualquier sitio y configurar la app.</p>
         <button class="btn ghost" id="ac-salir">Salir del modo administrador</button></div>`;
   }
+  const cardPersonas = adm && nube ? `
+  <div class="card"><div class="card-t">${icon('userCheck')} Personas de almacén y recepción</div>
+    <p class="muted" style="margin:-6px 0 4px">Cada persona entra con su nombre y su PIN personal. Si la borras o le cambias el PIN, se le cierra la sesión en su aparato al momento.</p>
+    ${personas ? '' : `<div class="warn" id="per-warn">${icon('alert')}<div>Ahora se entra con el PIN común de almacén. En cuanto des de alta a la primera persona, el PIN común deja de valer y cada uno entra con el suyo.</div></div>`}
+    <div id="per-list"></div>
+    <div id="per-form" class="per-form" hidden>
+      <input type="hidden" id="pf-id">
+      <div class="fields" style="margin:0">
+        <div><label class="l">Nombre y apellido</label><input id="pf-nom" autocomplete="off"></div>
+        <div><label class="l">Puestos donde trabaja</label><div class="pu-checks" id="pf-pu">${(cfg.puestos || []).map(p => `<label><input type="checkbox" value="${esc(p)}"> ${esc(p)}</label>`).join('')}</div></div>
+        <div><label class="l" id="pf-pin-l">PIN personal <i>(4 a 8 cifras)</i></label><div class="row-in"><input id="pf-pin" inputmode="numeric" autocomplete="off" style="text-transform:none"><button type="button" class="btn ghost" id="pf-gen">Generar</button></div></div>
+      </div>
+      <div class="btns" style="margin-top:12px"><button type="button" class="btn" id="pf-ok">${icon('check')} Guardar persona</button><button type="button" class="btn ghost" id="pf-cancel">Cancelar</button></div>
+    </div>
+    <button type="button" class="btn ghost" id="per-add" style="width:100%;margin-top:6px">${icon('plus')} Añadir persona</button>
+  </div>
+  <div class="card"><div class="card-t">${icon('lock')} Seguridad</div>
+    <dl class="kv" style="margin:0 0 12px">
+      <dt>PIN común de almacén</dt><dd id="seg-comun">${personas ? 'Desactivado: cada persona entra con el suyo' : 'Activo hasta que des de alta a la primera persona'}</dd>
+      <dt>PIN de administrador</dt><dd>${SEG.adminHash ? 'Cambiado desde la app' : 'El que viene en el archivo de la app'}</dd>
+    </dl>
+    <button type="button" class="btn ghost" id="seg-adm">${icon('lock')} Cambiar PIN de administrador</button>
+  </div>` : '';
   $('#app').innerHTML = `<div class="h1">Ajustes</div><p class="sub">${adm ? 'Los puestos, sedes y edificios se comparten con todos los aparatos.' : 'Se guardan en este dispositivo.'}</p>
   <div class="card"><div class="card-t">Tú</div>
     <div class="fields" style="margin:0">
@@ -1093,6 +1188,7 @@ function vAjustes(){
     <div id="pu-list">${(cfg.puestos || []).map(p => { const P = parsePuesto(p); return filaPuesto(P.se, P.ed, P.pu); }).join('')}</div>
     <button type="button" class="btn ghost" id="pu-add" style="width:100%;margin-top:4px">${icon('plus')} Añadir puesto</button>
   </div>
+  ${cardPersonas}
   <div class="card"><div class="card-t">Empresa, sedes y edificios</div>
     <div class="fields" style="margin:0">
       <div><label class="l">Nombre que sale en la etiqueta</label><input id="s-emp" value="${esc(cfg.empresa)}"${nf('empresa')}></div>
@@ -1102,7 +1198,7 @@ function vAjustes(){
       </div>
     </div>
   </div>
-  ${fijo('pin') && fijo('pinAdmin') ? `<div class="card"><div class="card-t">PINs</div><p class="muted" style="margin:0">Los PIN de almacén y de administrador están fijados en el archivo de la app (CONFIG_FIJA).</p></div>` : `<div class="card"><div class="card-t">PINs <i class="muted" style="font-weight:400;font-size:13px">(solo en este aparato)</i></div>
+  ${nube ? '' : fijo('pin') && fijo('pinAdmin') ? `<div class="card"><div class="card-t">PINs</div><p class="muted" style="margin:0">Los PIN de almacén y de administrador están fijados en el archivo de la app (CONFIG_FIJA).</p></div>` : `<div class="card"><div class="card-t">PINs <i class="muted" style="font-weight:400;font-size:13px">(solo en este aparato)</i></div>
     <div class="grid2">
       <div><label class="l">PIN de almacén</label><input id="s-pin" value="${esc(cfg.pin)}"${nf('pin')} inputmode="numeric" placeholder="Sin PIN"></div>
       <div><label class="l">PIN de administrador</label><input id="s-pinad" value="${esc(cfg.pinAdmin)}"${nf('pinAdmin')} inputmode="numeric" placeholder="Sin PIN"></div>
@@ -1129,14 +1225,101 @@ function vAjustes(){
   }
   const refresco = (msg, arriba) => { if(msg) toast(msg); pintaModo(); pintaNav('ajustes'); vAjustes(); if(arriba) window.scrollTo(0, 0); };
   if($('#ac-alm')){
-    const entrar = () => { if($('#ac-pin').value.replace(/\D/g, '') === cfg.pin){ LS.set('env_rol', { rol:'almacen', pin:cfg.pin, puesto:$('#ac-puesto').value }); refresco('Modo almacén: ' + $('#ac-puesto').value); } else { toast('PIN incorrecto'); $('#ac-pin').select(); } };
+    const llenaUsers = () => {
+      const sel = $('#ac-user'); if(!sel) return;
+      const l = USERS.filter(u => (u.puestos || []).includes($('#ac-puesto').value));
+      sel.innerHTML = l.length ? '<option value="">Elige tu nombre…</option>' + l.map(u => `<option value="${esc(u.id)}">${esc(u.nombre)}</option>`).join('') : '<option value="">Nadie dado de alta en este puesto</option>';
+      sel.disabled = !l.length;
+    };
+    if($('#ac-user')){ $('#ac-puesto').onchange = llenaUsers; llenaUsers(); }
+    const entrar = async () => {
+      if(bloqueado()) return;
+      const pin = $('#ac-pin').value.replace(/\D/g, ''), puesto = $('#ac-puesto').value;
+      if(usaPersonas()){
+        const u = userDe($('#ac-user').value);
+        if(!u){ toast($('#ac-user').disabled ? 'Pide al administrador que te dé de alta en este puesto' : 'Elige tu nombre'); return; }
+        if(await hashPin(u.id, pin) !== u.pinHash){ fallo(); $('#ac-pin').select(); return; }
+        acierto(); LS.set('env_rol', { rol:'almacen', uid:u.id, nombre:u.nombre, puesto, h:u.pinHash });
+        if(!cfg.usuario){ cfg.usuario = u.nombre; saveCfg(); }
+        Cloud.db.collection('usuarios').doc(u.id).set({ ultimoAcceso:Date.now() }, { merge:true }).catch(() => {});
+        refresco('Hola, ' + u.nombre.split(' ')[0] + ' · ' + puesto);
+      } else if(pin && pin === cfg.pin){ acierto(); LS.set('env_rol', { rol:'almacen', pin:cfg.pin, puesto }); refresco('Modo almacén: ' + puesto); }
+      else { fallo(); $('#ac-pin').select(); }
+    };
     $('#ac-alm').onclick = entrar; $('#ac-pin').onkeydown = ev => { if(ev.key === 'Enter') entrar(); };
   }
   if($('#ac-adm')){
-    const entrar = () => { if($('#ad-pin').value.replace(/\D/g, '') === cfg.pinAdmin){ LS.set('env_rol', { rol:'admin', pin:cfg.pinAdmin }); refresco('Modo administrador: ya puedes editar puestos, sedes y edificios', true); } else { toast('PIN incorrecto'); $('#ad-pin').select(); } };
+    const entrar = async () => {
+      if(bloqueado()) return;
+      const pin = $('#ad-pin').value.replace(/\D/g, '');
+      if(SEG.adminHash){
+        const h = await hashPin('admin', pin);
+        if(h !== SEG.adminHash){ fallo(); $('#ad-pin').select(); return; }
+        acierto(); LS.set('env_rol', { rol:'admin', h });
+      } else if(pin && pin === cfg.pinAdmin){ acierto(); LS.set('env_rol', { rol:'admin', pin:cfg.pinAdmin }); }
+      else { fallo(); $('#ad-pin').select(); return; }
+      refresco('Modo administrador: ya puedes editar puestos y personas', true);
+    };
     $('#ac-adm').onclick = entrar; $('#ad-pin').onkeydown = ev => { if(ev.key === 'Enter') entrar(); };
   }
   if($('#ac-cambia')) $('#ac-cambia').onchange = ev => { const r0 = LS.get('env_rol', {}); r0.puesto = ev.target.value; LS.set('env_rol', r0); refresco('Puesto: ' + ev.target.value); };
+  if($('#per-list')){
+    pintaPersonas();
+    const form = $('#per-form');
+    const abre = (u, soloPin) => {
+      form.hidden = false; $('#per-add').hidden = true;
+      $('#pf-id').value = u ? u.id : ''; $('#pf-nom').value = u ? u.nombre : ''; $('#pf-pin').value = '';
+      document.querySelectorAll('#pf-pu input').forEach(c => c.checked = !!u && (u.puestos || []).includes(c.value));
+      $('#pf-pin-l').innerHTML = u ? 'Nuevo PIN <i>(déjalo vacío para no cambiarlo)</i>' : 'PIN personal <i>(4 a 8 cifras)</i>';
+      form.scrollIntoView({ behavior:'smooth', block:'center' }); (soloPin ? $('#pf-pin') : $('#pf-nom')).focus();
+    };
+    const cierra = () => { form.hidden = true; $('#per-add').hidden = false; };
+    $('#per-add').onclick = () => abre(null);
+    $('#pf-cancel').onclick = cierra;
+    $('#pf-gen').onclick = () => { $('#pf-pin').value = nuevoPin(); };
+    $('#per-list').onclick = async ev => {
+      const b = ev.target.closest('button'); if(!b) return;
+      const u = userDe(b.dataset.id); if(!u) return;
+      if(b.dataset.a === 'ed') abre(u);
+      else if(b.dataset.a === 'pin') abre(u, true);
+      else if(b.dataset.a === 'del' && confirm(`¿Borrar a ${u.nombre}?\n\nSe le cerrará la sesión en su aparato y ya no podrá entrar. Los envíos que registró se quedan como están.`)){
+        try{ await Cloud.db.collection('usuarios').doc(u.id).delete(); toast(u.nombre + ' borrado'); }catch(err){ alert('No se pudo borrar: ' + err.message); }
+      }
+    };
+    $('#pf-ok').onclick = async () => {
+      const id = $('#pf-id').value, nombre = $('#pf-nom').value.trim().replace(/\s+/g, ' '), pin = $('#pf-pin').value.replace(/\D/g, '');
+      const puestos = [...document.querySelectorAll('#pf-pu input:checked')].map(c => c.value);
+      if(!nombre){ toast('Escribe el nombre'); $('#pf-nom').focus(); return; }
+      if(!puestos.length){ toast('Marca al menos un puesto'); return; }
+      if((!id || pin) && !/^\d{4,8}$/.test(pin)){ toast('El PIN tiene que tener de 4 a 8 cifras'); $('#pf-pin').focus(); return; }
+      if(USERS.some(u => u.id !== id && norm(u.nombre) === norm(nombre))){ toast('Ya hay una persona con ese nombre'); return; }
+      const b = $('#pf-ok'); b.disabled = true;
+      try{
+        const ref = id ? Cloud.db.collection('usuarios').doc(id) : Cloud.db.collection('usuarios').doc();
+        const d = { nombre, puestos, actualizado:Date.now() };
+        if(!id) d.creado = Date.now();
+        if(pin) d.pinHash = await hashPin(ref.id, pin);
+        await ref.set(d, { merge:true });
+        if(!SEG.modoPersonas) await Cloud.db.collection('config').doc('seguridad').set({ modoPersonas:true }, { merge:true });
+        cierra();
+        if(pin) alert(`${id ? 'Nuevo PIN' : 'PIN'} de ${nombre}: ${pin}\n\nDáselo en persona. No se puede volver a ver; si lo olvida, cámbialo desde aquí.`);
+        else toast('Guardado');
+      }catch(err){ alert('No se pudo guardar: ' + err.message); }
+      b.disabled = false;
+    };
+  }
+  if($('#seg-adm')) $('#seg-adm').onclick = async () => {
+    const p1 = prompt('Nuevo PIN de administrador (de 6 a 8 cifras):'); if(p1 === null) return;
+    const pin = p1.replace(/\D/g, '');
+    if(!/^\d{6,8}$/.test(pin)){ alert('El PIN de administrador tiene que tener de 6 a 8 cifras.'); return; }
+    if(prompt('Repite el nuevo PIN:') !== pin){ alert('No coinciden. No se ha cambiado.'); return; }
+    try{
+      const h = await hashPin('admin', pin);
+      LS.set('env_rol', { rol:'admin', h });
+      await Cloud.db.collection('config').doc('seguridad').set({ adminHash:h, adminCambiado:Date.now() }, { merge:true });
+      toast('PIN de administrador cambiado');
+    }catch(err){ alert('No se pudo cambiar: ' + err.message); }
+  };
   if($('#ac-salir')) $('#ac-salir').onclick = () => { LS.set('env_rol', {}); refresco('Has salido'); };
   $('#s-save').onclick = async () => {
     const val = id => { const el = $(id); return el && !el.disabled ? el.value.trim() : null; };
@@ -1177,13 +1360,25 @@ function vAjustes(){
   };
 }
 
+function pintaPersonas(){
+  const box = $('#per-list'); if(!box) return;
+  if(usaPersonas()){ if($('#per-warn')) $('#per-warn').remove(); if($('#seg-comun')) $('#seg-comun').textContent = 'Desactivado: cada persona entra con el suyo'; }
+  const grupos = (cfg.puestos || []).map(p => [p, USERS.filter(u => (u.puestos || []).includes(p))]);
+  const sin = USERS.filter(u => !(u.puestos || []).some(p => (cfg.puestos || []).includes(p)));
+  if(sin.length) grupos.push(['Sin puesto válido (revisar)', sin]);
+  box.innerHTML = grupos.map(([p, l]) => `<div class="per-g"><div class="per-h"><b>${esc(p)}</b><span class="muted">${l.length} ${l.length === 1 ? 'persona' : 'personas'}</span></div>
+    ${l.length ? l.map(u => `<div class="per-row"><div><b>${esc(u.nombre)}</b><span class="t">${u.ultimoAcceso ? 'Último acceso: ' + corto(u.ultimoAcceso) : 'Todavía no ha entrado'}</span></div>
+      <button type="button" class="btn ghost sm" data-a="pin" data-id="${esc(u.id)}">Cambiar PIN</button><button type="button" class="btn ghost sm" data-a="ed" data-id="${esc(u.id)}">Editar</button><button type="button" class="btn ghost sm del" data-a="del" data-id="${esc(u.id)}">Borrar</button></div>`).join('')
+      : '<div class="t muted" style="font-size:13px;padding:4px 0">Nadie todavía</div>'}</div>`).join('');
+}
+
 function filaPuesto(se = '', ed = '', pu = ''){
   return `<div class="pu-row"><input class="pu-se" list="sedes-a" placeholder="Sede" value="${esc(se)}"><input class="pu-ed" placeholder="Edificio" value="${esc(ed)}"><select class="pu-pu"><option value="">Almacén</option><option ${pu ? 'selected' : ''}>Recepción</option></select><button type="button" class="btn ghost pu-del" title="Quitar" aria-label="Quitar">✕</button></div>`;
 }
 
 /* ===== Arranque ===== */
 document.getElementById('recargar').onclick = ev => { ev.currentTarget.classList.add('spin'); location.reload(); };
-(async () => { await initStore(); await cargarCompartida(); cfg.puestos = (cfg.puestos || []).map(fmtPuesto).filter(Boolean); pintaModo(); route(); })();
+(async () => { await initStore(); await cargarCompartida(); await cargarSeguridad(); if(Store === Cloud) marcaAcceso(); cfg.puestos = (cfg.puestos || []).map(fmtPuesto).filter(Boolean); pintaModo(); route(); })();
 </script>
 </body>
 </html>
