@@ -255,6 +255,9 @@ details.box[open]>summary{margin-bottom:14px}
 .live::before{content:"";width:8px;height:8px;border-radius:50%;background:#22c55e;animation:blink 1.6s infinite}
 @keyframes blink{50%{opacity:.3}}
 input.pin:not(:placeholder-shown){-webkit-text-security:disc;text-security:disc;letter-spacing:.2em}
+.pu-row{display:grid;grid-template-columns:1fr 1fr 48px;gap:8px;margin-bottom:8px;align-items:center}
+.pu-row .pu-del{padding:12px 0}
+.pu-head span{font-size:13px;font-weight:600;color:#334155}
 #toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + var(--safe) + 20px);transform:translate(-50%,30px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;font-weight:600;font-size:14px;opacity:0;transition:.25s;z-index:50;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:90vw;text-align:center}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 
@@ -454,7 +457,7 @@ function parseFirebase(txt){
 }
 const loadScript = src => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => ko(new Error('No se pudo cargar ' + src)); document.head.appendChild(s); });
 let compartida = {};
-function aplicarCompartida(){ ['empresa','sedes','edificios','puestos'].forEach(k => { if(compartida[k] && !(k in FIJO)) cfg[k] = compartida[k]; }); }
+function aplicarCompartida(){ ['empresa','sedes','edificios','puestos'].forEach(k => { if(compartida[k] && !(k in FIJO)) cfg[k] = compartida[k]; }); cfg.puestos = (cfg.puestos || []).map(fmtPuesto).filter(Boolean); }
 async function cargarCompartida(){
   if(Store !== Cloud) return;
   try{ const s = await Cloud.db.collection('config').doc('general').get(); if(s.exists){ compartida = s.data(); aplicarCompartida(); } }catch(_){}
@@ -499,7 +502,8 @@ const esAlmacen = () => rol() !== 'trabajador';
 const esAdmin = () => rol() === 'admin' || (rol() === 'almacen' && !cfg.pinAdmin);
 const miPuesto = () => (LS.get('env_rol', {}) || {}).puesto || '';
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-const partes = p => String(p).split(/\s*[·,\/|]\s*|\s+-\s+/).map(x => x.trim()).filter(Boolean);
+const partes = p => String(p).split(/\s*[·,\/|\-–]\s*/).map(x => x.trim()).filter(Boolean);
+const fmtPuesto = p => partes(p).join(' · ');
 function enPuesto(o, puesto){
   if(!puesto || !o) return false;
   const [ps, pe = ''] = partes(puesto);
@@ -1068,8 +1072,11 @@ function vAjustes(){
   ${acceso}
   ${adm ? `
   <div class="card"><div class="card-t">Puestos de almacén</div>
-    <p class="muted" style="margin:-6px 0 12px">Uno por línea, como <b>Sede · Edificio</b> (ej. <i>Zamudio · 106</i>). Para añadir un almacén nuevo, escríbelo aquí y guarda.</p>
-    <textarea id="s-pu" style="min-height:110px">${esc((cfg.puestos || []).join('\n'))}</textarea>
+    <p class="muted" style="margin:-6px 0 12px">Cada almacén con su sede y su edificio. Pulsa «Añadir almacén», rellena y luego «Guardar ajustes».</p>
+    <datalist id="sedes-a">${(cfg.sedes || []).map(x => `<option value="${esc(x)}">`).join('')}</datalist>
+    <div class="pu-row pu-head"><span>Sede</span><span>Edificio</span><span></span></div>
+    <div id="pu-list">${(cfg.puestos || []).map(p => filaPuesto(...partes(p))).join('')}</div>
+    <button type="button" class="btn ghost" id="pu-add" style="width:100%;margin-top:4px">${icon('plus')} Añadir almacén</button>
   </div>
   <div class="card"><div class="card-t">Empresa, sedes y edificios</div>
     <div class="fields" style="margin:0">
@@ -1100,6 +1107,11 @@ function vAjustes(){
     <p class="muted" style="margin:-6px 0 12px">Solo para los envíos guardados en este equipo (modo sin Firebase).</p>
     <div class="btns"><button class="btn ghost" id="s-exp">${icon('download')} Exportar</button><label class="btn ghost" style="margin:0">Importar<input type="file" id="s-imp" accept=".json" hidden></label></div>
   </div>` : ''}`;
+  if($('#pu-list')){
+    const bindDel = () => document.querySelectorAll('.pu-del').forEach(b => b.onclick = () => b.parentNode.remove());
+    $('#pu-add').onclick = () => { $('#pu-list').insertAdjacentHTML('beforeend', filaPuesto()); bindDel(); $('#pu-list').lastElementChild.querySelector('input').focus(); };
+    bindDel();
+  }
   const refresco = (msg, arriba) => { if(msg) toast(msg); pintaModo(); pintaNav('ajustes'); vAjustes(); if(arriba) window.scrollTo(0, 0); };
   if($('#ac-alm')){
     const entrar = () => { if($('#ac-pin').value.replace(/\D/g, '') === cfg.pin){ LS.set('env_rol', { rol:'almacen', pin:cfg.pin, puesto:$('#ac-puesto').value }); refresco('Modo almacén: ' + $('#ac-puesto').value); } else { toast('PIN incorrecto'); $('#ac-pin').select(); } };
@@ -1120,14 +1132,22 @@ function vAjustes(){
     if(val('#s-emp') !== null) cfg.empresa = val('#s-emp') || 'Envíos internos';
     if(lista('#s-se')) cfg.sedes = lista('#s-se');
     if(lista('#s-ed')) cfg.edificios = lista('#s-ed');
-    if(lista('#s-pu')) cfg.puestos = lista('#s-pu');
+    if($('#pu-list')){
+      const filas = [...document.querySelectorAll('#pu-list .pu-row')].map(r => [r.querySelector('.pu-se').value.trim(), r.querySelector('.pu-ed').value.trim()]).filter(([se]) => se);
+      cfg.puestos = filas.map(([se, ed]) => ed ? `${se} · ${ed}` : se);
+      // las sedes y edificios nuevos se añaden solos a las sugerencias
+      filas.forEach(([se, ed]) => {
+        if(!(cfg.sedes || []).some(x => norm(x) === norm(se))) cfg.sedes = [...(cfg.sedes || []), se];
+        if(ed && !(cfg.edificios || []).some(x => norm(x) === norm(ed))) cfg.edificios = [...(cfg.edificios || []), ed];
+      });
+    }
     if(val('#s-url') !== null) cfg.baseUrl = val('#s-url');
     if(val('#s-pin') !== null) cfg.pin = val('#s-pin');
     if(val('#s-pinad') !== null) cfg.pinAdmin = val('#s-pinad');
     const fb = val('#s-fb') ?? cfg.firebase;
     if(fb){ try{ parseFirebase(fb); }catch(err){ alert('La configuración de Firebase no es válida: ' + err.message); return; } }
     cfg.firebase = fb; Object.assign(cfg, FIJO); saveCfg();
-    if(adm && $('#s-pu')){ try{ await guardarCompartida(); }catch(err){ alert('Se guardó en este aparato, pero no se pudo compartir: ' + err.message); } }
+    if(adm && $('#pu-list')){ try{ await guardarCompartida(); }catch(err){ alert('Se guardó en este aparato, pero no se pudo compartir: ' + err.message); } }
     if(fb !== fbOld){ location.hash = '#/inicio'; location.reload(); return; }
     refresco('Ajustes guardados');
   };
@@ -1142,9 +1162,13 @@ function vAjustes(){
   };
 }
 
+function filaPuesto(se = '', ed = ''){
+  return `<div class="pu-row"><input class="pu-se" list="sedes-a" placeholder="Sede (ej. Zamudio)" value="${esc(se)}"><input class="pu-ed" placeholder="Edificio (ej. 104)" value="${esc(ed)}"><button type="button" class="btn ghost pu-del" title="Quitar" aria-label="Quitar">✕</button></div>`;
+}
+
 /* ===== Arranque ===== */
 document.getElementById('recargar').onclick = ev => { ev.currentTarget.classList.add('spin'); location.reload(); };
-(async () => { await initStore(); await cargarCompartida(); pintaModo(); route(); })();
+(async () => { await initStore(); await cargarCompartida(); cfg.puestos = (cfg.puestos || []).map(fmtPuesto).filter(Boolean); pintaModo(); route(); })();
 </script>
 </body>
 </html>
