@@ -254,6 +254,7 @@ details.box[open]>summary{margin-bottom:14px}
 .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#15803d;background:#dcfce7;padding:6px 10px;border-radius:99px}
 .live::before{content:"";width:8px;height:8px;border-radius:50%;background:#22c55e;animation:blink 1.6s infinite}
 @keyframes blink{50%{opacity:.3}}
+input.pin:not(:placeholder-shown){-webkit-text-security:disc;text-security:disc;letter-spacing:.2em}
 #toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + var(--safe) + 20px);transform:translate(-50%,30px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;font-weight:600;font-size:14px;opacity:0;transition:.25s;z-index:50;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:90vw;text-align:center}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 
@@ -1041,11 +1042,11 @@ function vAjustes(){
         <p class="muted" style="margin:-6px 0 12px">Solo para almacén y recepción. Elige dónde estás: solo podrás registrar la salida de los envíos que salen de tu puesto, y el recibí y la entrega de los que llegan a él.</p>
         <div class="fields" style="margin:0">
           <div><label class="l">Mi puesto</label><select id="ac-puesto">${opPuestos}</select></div>
-          <div class="row-in"><input id="ac-pin" type="password" inputmode="numeric" placeholder="PIN de almacén" style="text-transform:none"><button class="btn" id="ac-alm">Entrar</button></div>
+          <div class="row-in"><input id="ac-pin" class="pin" type="text" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="PIN de almacén" style="text-transform:none"><button class="btn" id="ac-alm">Entrar</button></div>
         </div>
       </div>
       ${cfg.pinAdmin ? `<div class="card"><div class="card-t">${icon('lock')} Administrador</div>
-        <div class="row-in"><input id="ad-pin" type="password" inputmode="numeric" placeholder="PIN de administrador" style="text-transform:none"><button class="btn ghost" id="ac-adm">Entrar</button></div></div>` : ''}`;
+        <div class="row-in"><input id="ad-pin" class="pin" type="text" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="PIN de administrador" style="text-transform:none"><button class="btn ghost" id="ac-adm">Entrar</button></div></div>` : ''}`;
     else if(r === 'almacen') acceso = `
       <div class="card"><div class="card-t">${icon('lock')} Modo almacén</div>
         <p class="muted" style="margin:-6px 0 12px">Estás en el puesto <b style="color:var(--ink)">${esc(miPuesto())}</b>. Registras la salida de lo que sale de aquí, y el recibí y la entrega de lo que llega aquí.</p>
@@ -1099,13 +1100,13 @@ function vAjustes(){
     <p class="muted" style="margin:-6px 0 12px">Solo para los envíos guardados en este equipo (modo sin Firebase).</p>
     <div class="btns"><button class="btn ghost" id="s-exp">${icon('download')} Exportar</button><label class="btn ghost" style="margin:0">Importar<input type="file" id="s-imp" accept=".json" hidden></label></div>
   </div>` : ''}`;
-  const refresco = msg => { if(msg) toast(msg); pintaModo(); pintaNav('ajustes'); vAjustes(); };
+  const refresco = (msg, arriba) => { if(msg) toast(msg); pintaModo(); pintaNav('ajustes'); vAjustes(); if(arriba) window.scrollTo(0, 0); };
   if($('#ac-alm')){
-    const entrar = () => { if($('#ac-pin').value.trim() === cfg.pin){ LS.set('env_rol', { rol:'almacen', pin:cfg.pin, puesto:$('#ac-puesto').value }); refresco('Modo almacén: ' + $('#ac-puesto').value); } else { toast('PIN incorrecto'); $('#ac-pin').select(); } };
+    const entrar = () => { if($('#ac-pin').value.replace(/\D/g, '') === cfg.pin){ LS.set('env_rol', { rol:'almacen', pin:cfg.pin, puesto:$('#ac-puesto').value }); refresco('Modo almacén: ' + $('#ac-puesto').value); } else { toast('PIN incorrecto'); $('#ac-pin').select(); } };
     $('#ac-alm').onclick = entrar; $('#ac-pin').onkeydown = ev => { if(ev.key === 'Enter') entrar(); };
   }
   if($('#ac-adm')){
-    const entrar = () => { if($('#ad-pin').value.trim() === cfg.pinAdmin){ LS.set('env_rol', { rol:'admin', pin:cfg.pinAdmin }); refresco('Modo administrador'); } else { toast('PIN incorrecto'); $('#ad-pin').select(); } };
+    const entrar = () => { if($('#ad-pin').value.replace(/\D/g, '') === cfg.pinAdmin){ LS.set('env_rol', { rol:'admin', pin:cfg.pinAdmin }); refresco('Modo administrador: ya puedes editar puestos, sedes y edificios', true); } else { toast('PIN incorrecto'); $('#ad-pin').select(); } };
     $('#ac-adm').onclick = entrar; $('#ad-pin').onkeydown = ev => { if(ev.key === 'Enter') entrar(); };
   }
   if($('#ac-cambia')) $('#ac-cambia').onchange = ev => { const r0 = LS.get('env_rol', {}); r0.puesto = ev.target.value; LS.set('env_rol', r0); refresco('Puesto: ' + ev.target.value); };
