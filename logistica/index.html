@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f6fa">
 <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Logística</title>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<title>Logística</title>
 <link rel="apple-touch-icon" href="icono.png">
 <link rel="icon" href="icono.png">
 <meta name="apple-mobile-web-app-title" content="Logística">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/barcodes/JsBarcode.code128.min.js"></script>
 <style>
 :root{
@@ -496,6 +496,8 @@ const urlEnvio = id => { const b = baseUrl(); return b + (b.includes('?') ? '&' 
 /* Interno (valija o en mano): solicitado → asignado → transito → recibido → entregado
    Fuera de la empresa (transportista): solicitado → asignado → transito (expedido) → entregado */
 const esExt = e => !!(e.destino && e.destino.externo);
+const esRec = e => !!(e.origen && e.origen.externo);          // recogida en una empresa de fuera
+const porTrans = e => esExt(e) || esRec(e);
 const ordenDe = e => esExt(e) ? ['solicitado','asignado','transito','entregado'] : ['solicitado','asignado','transito','recibido','entregado'];
 const sigDe = e => { const o = ordenDe(e), i = o.indexOf(e.estado); return i >= 0 && i < o.length - 1 ? o[i + 1] : null; };
 const ESTADOS = {
@@ -505,12 +507,12 @@ const ESTADOS = {
   recibido:  { label:'En destino',             paso:'En destino', icon:'building' },
   entregado: { label:'Entregado',              paso:'Entregado',  icon:'userCheck' }
 };
-const pasoTxt = (e, k) => k === 'transito' ? (esExt(e) ? 'Expedido' : e.asig && e.asig.modo === 'valija' ? 'En valija' : 'Salida') : ESTADOS[k].paso;
-const labelDe = e => e.estado === 'transito' ? (esExt(e) ? 'Expedido' : e.asig && e.asig.modo === 'valija' ? 'En la valija' : 'En tránsito') : ESTADOS[e.estado].label;
+const pasoTxt = (e, k) => k === 'transito' ? (esRec(e) ? 'Recogida' : esExt(e) ? 'Expedido' : e.asig && e.asig.modo === 'valija' ? 'En valija' : 'Salida') : ESTADOS[k].paso;
+const labelDe = e => e.estado === 'transito' ? (esRec(e) ? 'En camino' : esExt(e) ? 'Expedido' : e.asig && e.asig.modo === 'valija' ? 'En la valija' : 'En tránsito') : ESTADOS[e.estado].label;
 const PASOS = {
-  transito:  { titulo:e => esExt(e) ? 'Expedir con ' + (e.asig.trans || 'el transportista') : e.asig.modo === 'valija' ? 'Cargar en la valija' : 'Dar salida',
-               texto:e => esExt(e) ? `Prepara el paquete en ${donde(e.origen)}, pega la etiqueta del transportista y apunta su número de seguimiento.` : e.asig.modo === 'valija' ? `Pulsa cuando el paquete salga de ${donde(e.origen)} en la valija.` : `Pulsa cuando el paquete salga de ${donde(e.origen)}.`,
-               boton:e => esExt(e) ? 'Confirmar expedición' : e.asig.modo === 'valija' ? 'Cargado en la valija' : 'Confirmar salida' },
+  transito:  { titulo:e => esRec(e) ? 'Pedir la recogida a ' + (e.asig.trans || 'el transportista') : esExt(e) ? 'Expedir con ' + (e.asig.trans || 'el transportista') : e.asig.modo === 'valija' ? 'Cargar en la valija' : 'Dar salida',
+               texto:e => esRec(e) ? `Pide a ${e.asig.trans} que lo recoja en ${donde(e.origen)} y apunta su número de seguimiento.` : esExt(e) ? `Prepara el paquete en ${donde(e.origen)}, pega la etiqueta del transportista y apunta su número de seguimiento.` : e.asig.modo === 'valija' ? `Pulsa cuando el paquete salga de ${donde(e.origen)} en la valija.` : `Pulsa cuando el paquete salga de ${donde(e.origen)}.`,
+               boton:e => esRec(e) ? 'Recogida pedida' : esExt(e) ? 'Confirmar expedición' : e.asig.modo === 'valija' ? 'Cargado en la valija' : 'Confirmar salida' },
   recibido:  { titulo:() => 'Recibir en destino',       texto:e => `Pulsa cuando el paquete llegue a ${donde(e.destino)}.`,                   boton:() => 'Confirmar llegada' },
   entregado: { titulo:e => esExt(e) ? 'Confirmar la entrega' : 'Entregar al destinatario',
                texto:e => esExt(e) ? `Cuando el transportista lo haya entregado a ${e.destino.empresa || e.destino.persona}.` : `Entrega el paquete a ${e.destino.persona}. Puede firmar en la pantalla.`,
@@ -553,12 +555,12 @@ const ESPECIAL = { peligrosa:'Mercancía peligrosa', fragil:'Frágil', volumen:'
 function reglas(e){
   const esp = Object.keys(ESPECIAL).filter(k => (e.especial || []).includes(k));
   if(esp.length) return { manual:'Lleva ' + esp.map(k => ESPECIAL[k].toLowerCase()).join(', ') };
-  if(!esExt(e)){
+  if(!porTrans(e)){
     if(e.prioridad === 'urgente' && cfg.manualUrgInt) return { manual:'Es urgente' };
     const r = rutaPara(e.origen, e.destino);
     return r ? { modo:'valija', ruta:r.id } : { manual:'No hay ruta de valija entre ' + donde(e.origen) + ' y ' + donde(e.destino) };
   }
-  const nac = esNacional(e.destino), kg = Number(e.peso) || 0;
+  const nac = esNacional(esRec(e) ? e.origen : e.destino), kg = Number(e.peso) || 0;
   const r = (cfg.reglas || []).find(x =>
     (x.ambito === 'cualquiera' || (x.ambito === 'nacional') === nac) &&
     (x.prio === 'cualquiera' || x.prio === e.prioridad) &&
@@ -763,7 +765,7 @@ function campoPor(e, nx){
 }
 function puedePaso(e, nx){
   const r = rol(); if(r === 'admin') return true; if(r !== 'almacen') return false;
-  if(nx === 'transito') return enPuesto(e.origen, miPuesto());
+  if(nx === 'transito') return esRec(e) ? esLogistica() || enPuesto(e.destino, miPuesto()) : enPuesto(e.origen, miPuesto());   // la recogida la pide Logística o el almacén que la va a recibir
   if(esExt(e)) return esLogistica() || enPuesto(e.origen, miPuesto());   // la entrega fuera la confirma Logística o el almacén que lo expidió
   return enPuesto(e.destino, miPuesto());
 }
@@ -822,9 +824,11 @@ function frase(e){
   const u = ultimo(e, e.estado);
   switch(e.estado){
     case 'solicitado': return `Esperando a que Logística decida cómo se envía`;
-    case 'asignado': return e.asig.modo === 'valija' ? `Va en la valija${proximaSalida(rutaDe(e.asig.ruta)) ? ', próxima salida ' + proximaSalida(rutaDe(e.asig.ruta)) : ''}. Pendiente de salir de ${donde(e.origen)}`
+    case 'asignado': if(esRec(e)) return `Se recogerá en ${donde(e.origen)} con ${e.asig.trans}. Falta pedir la recogida`;
+      return e.asig.modo === 'valija' ? `Va en la valija${proximaSalida(rutaDe(e.asig.ruta)) ? ', próxima salida ' + proximaSalida(rutaDe(e.asig.ruta)) : ''}. Pendiente de salir de ${donde(e.origen)}`
       : e.asig.modo === 'transportista' ? `Se enviará con ${e.asig.trans}. Pendiente de preparar en ${donde(e.origen)}` : `Pendiente de salir de ${donde(e.origen)}`;
-    case 'transito': return esExt(e) ? `Expedido con ${e.asig.trans} a las ${hora(u.ts)}${u.seguimiento ? ' · nº ' + u.seguimiento : ''}` : `${e.asig && e.asig.modo === 'valija' ? 'En la valija' : 'En tránsito'} desde ${donde(e.origen)}, salió a las ${hora(u.ts)}`;
+    case 'transito': if(esRec(e)) return `${e.asig.trans} lo recoge en ${donde(e.origen)}${u.seguimiento ? ' · nº ' + u.seguimiento : ''}. Llegará a ${donde(e.destino)}`;
+      return esExt(e) ? `Expedido con ${e.asig.trans} a las ${hora(u.ts)}${u.seguimiento ? ' · nº ' + u.seguimiento : ''}` : `${e.asig && e.asig.modo === 'valija' ? 'En la valija' : 'En tránsito'} desde ${donde(e.origen)}, salió a las ${hora(u.ts)}`;
     case 'recibido': return `Ha llegado a ${u.lugar || donde(e.destino)} a las ${hora(u.ts)}. Falta entregarlo a ${e.destino.persona}`;
     case 'entregado': return esExt(e) ? `Entregado a ${u.receptor || e.destino.empresa || e.destino.persona} el ${fmt(u.ts)}` : `Entregado a ${u.receptor || e.destino.persona} el ${fmt(u.ts)}`;
   }
@@ -842,7 +846,7 @@ const urgB = e => e.prioridad === 'urgente' ? '<span class="badge urg">Urgente</
 const tagAsig = e => e.asig ? `<span class="tag">${icon(iconAsig(e.asig))}${esc(e.asig.modo === 'valija' ? 'Valija' : e.asig.modo === 'transportista' ? e.asig.trans : 'En mano')}</span>` : '';
 const itemHTML = e => `<a class="item ${e.prioridad === 'urgente' && e.estado !== 'entregado' ? 'urg' : ''}" href="#/envio/${encodeURIComponent(e.id)}">
     <div class="r1"><span class="idm">${esc(e.id)}</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${tagAsig(e)}${urgB(e)}${badge(e)}</span></div>
-    <div class="r2">${esc(donde(e.origen))} ${icon('arrow')} ${esExt(e) ? icon('globe') : ''}${esc(donde(e.destino))}</div>
+    <div class="r2">${esRec(e) ? icon('globe') : ''}${esc(donde(e.origen))} ${icon('arrow')} ${esExt(e) ? icon('globe') : ''}${esc(donde(e.destino))}</div>
     <div class="r3">Para ${esc(e.destino.persona || e.destino.empresa)} · ${esc(e.tipo)} · ${corto(e.actualizado || e.creado)}</div>
     ${mini(e)}</a>`;
 
@@ -927,7 +931,10 @@ async function vEditar(id){
   vNuevo(e);
 }
 function vNuevo(ed = null){
-  const last = ed ? ed.origen : LS.get('log_last_origen', {});
+  const rec = !!(ed && ed.origen.externo);
+  const last = ed ? (rec ? {} : ed.origen) : LS.get('log_last_origen', {});
+  const os = rec ? ed.origen : {};
+  const w = (k, d = '') => esc(os[k] ?? d);
   const ds = ed ? ed.destino : {};
   const ext = !!ds.externo;
   const now = new Date(ed ? ed.fecha : Date.now()); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -939,12 +946,32 @@ function vNuevo(ed = null){
   <div class="h1">${ed ? 'Modificar envío' : 'Nuevo envío'}</div><p class="sub">${ed ? 'Cambia lo que necesites y guarda. Después vuelve a imprimir la etiqueta.' : 'Rellena los 3 apartados. No hace falta elegir transporte: lo decide Logística.'}</p>
   <form id="f" autocomplete="off">
     <div class="card"><div class="card-t"><span class="num">1</span>¿Desde dónde sale?</div>
-      ${chipsPuesto('o')}
-      <div class="f">
-        <div><label class="l">Sede</label><input name="o_se" list="sedes" required value="${esc(last.sede)}" placeholder="Zamudio"><input type="hidden" name="o_pu" value="${esc(last.punto || '')}"></div>
-        <div><label class="l">Edificio</label><input name="o_ed" list="edifs" value="${esc(last.edificio)}" placeholder="106"></div>
-        <div class="s2"><label class="l">Planta <i>(opcional)</i></label><input name="o_pl" value="${esc(last.planta)}"></div>
-        <div class="s4"><label class="l">Quién lo envía</label><input name="o_pe" required value="${esc(last.persona || (ed ? '' : cfg.usuario))}" placeholder="Nombre y apellido"></div>
+      <div class="seg">
+        <label><input type="radio" name="origen" value="int" ${rec ? '' : 'checked'}><span>${icon('building')}De la empresa<small>Un edificio o sede nuestro</small></span></label>
+        <label><input type="radio" name="origen" value="ext" ${rec ? 'checked' : ''}><span>${icon('globe')}De una empresa de fuera<small>Hay que ir a recogerlo</small></span></label>
+      </div>
+      <div id="o-int" ${rec ? 'hidden' : ''}>
+        ${chipsPuesto('o')}
+        <div class="f">
+          <div><label class="l">Sede</label><input name="o_se" list="sedes" value="${esc(last.sede)}" placeholder="Zamudio"><input type="hidden" name="o_pu" value="${esc(last.punto || '')}"></div>
+          <div><label class="l">Edificio</label><input name="o_ed" list="edifs" value="${esc(last.edificio)}" placeholder="106"></div>
+          <div class="s2"><label class="l">Planta <i>(opcional)</i></label><input name="o_pl" value="${esc(last.planta)}"></div>
+          <div class="s4"><label class="l">Quién lo envía</label><input name="o_pe" value="${esc(last.persona || (ed ? '' : cfg.usuario))}" placeholder="Nombre y apellido"></div>
+        </div>
+      </div>
+      <div id="o-ext" ${rec ? '' : 'hidden'}>
+        <div class="f">
+          <div class="s2"><label class="l">Empresa</label><input name="y_emp" value="${w('empresa')}" placeholder="Proveedor, cliente…"></div>
+          <div class="s2"><label class="l">Persona de contacto <i>(allí)</i></label><input name="y_pe" value="${w('persona')}" placeholder="Nombre y apellido"></div>
+          <div class="s4"><label class="l">Dirección de recogida</label><input name="y_dir" value="${w('direccion')}" placeholder="Calle, número, polígono…"></div>
+          <div><label class="l">C.P.</label><input name="y_cp" value="${w('cp')}" inputmode="numeric"></div>
+          <div><label class="l">Población</label><input name="y_pob" value="${w('poblacion')}"></div>
+          <div><label class="l">Provincia</label><input name="y_prov" value="${w('provincia')}"></div>
+          <div><label class="l">País</label><input name="y_pais" value="${w('pais', 'España')}"></div>
+          <div class="s2"><label class="l">Teléfono</label><input name="y_tel" value="${w('telefono')}" inputmode="tel"></div>
+          <div class="s2"><label class="l">Horario de recogida <i>(opcional)</i></label><input name="y_hor" value="${w('horario')}" placeholder="Ej.: de 8 a 14 h"></div>
+          <div class="s4"><label class="l">Referencia <i>(pedido, albarán…, opcional)</i></label><input name="y_ref" value="${w('referencia')}"></div>
+        </div>
       </div>
     </div>
     <div class="card"><div class="card-t"><span class="num">2</span>¿Para quién es?</div>
@@ -995,14 +1022,17 @@ function vNuevo(ed = null){
     <div class="sticky-go"><button class="btn big" id="go">${ed ? icon('check') + ' Guardar cambios' : icon('printer') + ' Solicitar envío'}</button></div>
   </form>`;
   const F = $('#f');
-  const ambito = () => F.ambito.value;
+  const ambito = () => F.ambito.value, origenTipo = () => F.origen.value;
   const pintaAmbito = () => {
-    const x = ambito() === 'ext';
+    const x = ambito() === 'ext', y = origenTipo() === 'ext';
     $('#d-int').hidden = x; $('#d-ext').hidden = !x;
+    $('#o-int').hidden = y; $('#o-ext').hidden = !y;
     F.d_se.required = F.d_pe.required = !x;
     ['x_emp','x_dir','x_cp','x_pob','x_pais'].forEach(n => F[n].required = x);
+    F.o_se.required = F.o_pe.required = !y;
+    ['y_emp','y_dir','y_cp','y_pob','y_pais'].forEach(n => F[n].required = y);
   };
-  F.querySelectorAll('input[name=ambito]').forEach(r => r.onchange = pintaAmbito); pintaAmbito();
+  F.querySelectorAll('input[name=ambito], input[name=origen]').forEach(r => r.onchange = pintaAmbito); pintaAmbito();
   document.querySelectorAll('.pq').forEach(c => c.onclick = () => {
     const P = parsePuesto(c.dataset.p), k = c.dataset.k;
     F[k + '_se'].value = P.se; F[k + '_ed'].value = P.ed; F[k + '_pu'].value = P.pu; marcaPuestos();
@@ -1012,7 +1042,9 @@ function vNuevo(ed = null){
   ['o_se','o_ed','d_se','d_ed'].forEach(n => F[n].addEventListener('input', () => { F[n[0] + '_pu'].value = ''; marcaPuestos(); })); marcaPuestos();
   document.querySelectorAll('.stepperN button').forEach(b => b.onclick = () => { const i = b.parentNode.querySelector('input'); i.value = Math.max(1, (Number(i.value) || 1) + Number(b.dataset.d)); });
   const leer = f => {
-    const origen = { sede:f.o_se.trim(), edificio:f.o_ed.trim(), punto:f.o_pu || '', planta:f.o_pl.trim(), persona:f.o_pe.trim() };
+    const origen = origenTipo() === 'ext'
+      ? { externo:true, empresa:f.y_emp.trim(), persona:f.y_pe.trim(), direccion:f.y_dir.trim(), cp:f.y_cp.trim(), poblacion:f.y_pob.trim(), provincia:f.y_prov.trim(), pais:f.y_pais.trim() || 'España', telefono:f.y_tel.trim(), horario:f.y_hor.trim(), referencia:f.y_ref.trim() }
+      : { sede:f.o_se.trim(), edificio:f.o_ed.trim(), punto:f.o_pu || '', planta:f.o_pl.trim(), persona:f.o_pe.trim() };
     const destino = ambito() === 'ext'
       ? { externo:true, empresa:f.x_emp.trim(), persona:f.x_pe.trim(), direccion:f.x_dir.trim(), cp:f.x_cp.trim(), poblacion:f.x_pob.trim(), provincia:f.x_prov.trim(), pais:f.x_pais.trim() || 'España', telefono:f.x_tel.trim(), email:f.x_mail.trim() }
       : { sede:f.d_se.trim(), edificio:f.d_ed.trim(), punto:f.d_pu || '', planta:f.d_pl.trim(), persona:f.d_pe.trim() };
@@ -1022,12 +1054,13 @@ function vNuevo(ed = null){
   F.onsubmit = async ev => {
     ev.preventDefault(); const b = $('#go'); b.disabled = true; b.textContent = ed ? 'Guardando…' : 'Enviando…';
     const f = Object.fromEntries(new FormData(ev.target)), d = leer(f);
+    if(d.origen.externo && d.destino.externo){ alert('Si sale de una empresa de fuera, el destino tiene que ser de la empresa (y al revés).'); b.disabled = false; b.innerHTML = ed ? icon('check') + ' Guardar cambios' : icon('printer') + ' Solicitar envío'; return; }
     if(ed){
       try{
         const ts = Date.now();
         await Store.update(ed.id, cur => {
           if(cur.estado === 'entregado') throw new Error('El envío ya está entregado');
-          const cambiaDestino = !!cur.destino.externo !== !!d.destino.externo;
+          const cambiaDestino = !!cur.destino.externo !== !!d.destino.externo || !!cur.origen.externo !== !!d.origen.externo;
           if(!antesDeSalir(cur) && cambiaDestino) throw new Error('Ya ha salido: no se puede cambiar de dentro a fuera de la empresa');
           Object.assign(cur, d); cur.fecha = f.fecha ? new Date(f.fecha).getTime() : cur.fecha;
           cur.modificado = ts; cur.actualizado = ts;
@@ -1041,11 +1074,11 @@ function vNuevo(ed = null){
     try{
       const id = await Store.nextId(); const ts = Date.now();
       const e = Object.assign({ id, estado:'solicitado', creado:ts, actualizado:ts, fecha: f.fecha ? new Date(f.fecha).getTime() : ts, asig:null, motivo:'' }, d);
-      e.historial = [{ estado:'solicitado', ts, por:d.origen.persona, lugar:[d.origen.sede, d.origen.edificio, d.origen.punto].filter(Boolean).join(' · ') }];
+      e.historial = [{ estado:'solicitado', ts, por: d.origen.externo ? (cfg.usuario || d.destino.persona) : d.origen.persona, lugar: d.origen.externo ? 'Recogida en ' + donde(d.origen) : [d.origen.sede, d.origen.edificio, d.origen.punto].filter(Boolean).join(' · ') }];
       autoAsignar(e, ts);
       await Store.save(e);
       seguir(id); LS.set('log_creados', [id, ...creados()].slice(0, 300));
-      LS.set('log_last_origen', e.origen);
+      if(!e.origen.externo) LS.set('log_last_origen', e.origen);
       location.hash = '#/envio/' + encodeURIComponent(id) + '/nuevo';
     }catch(err){ alert('No se pudo crear el envío: ' + err.message); b.disabled = false; b.innerHTML = icon('printer') + ' Solicitar envío'; }
   };
@@ -1074,7 +1107,7 @@ function etiquetaHTML(e, n = 1){
       ? `<div class="etq-bul"><small>BULTO</small><b>${n}<i> / ${e.bultos}</i></b></div>`
       : '<div class="cap">Escanea con el móvil<br>para ver el estado</div>'}</div>
     <div class="etq-info">
-      <div class="etq-emp">${esc(cfg.empresa)} · ${esExt(e) ? 'Envío externo' : 'Envío interno'}</div>
+      <div class="etq-emp">${esc(cfg.empresa)} · ${esRec(e) ? 'Recogida' : esExt(e) ? 'Envío externo' : 'Envío interno'}</div>
       <div class="etq-idr"><span class="etq-id">${esc(e.id)}</span></div>
       ${e.prioridad === 'urgente' ? '<div class="etq-urg">URGENTE</div>' : ''}
       <div class="etq-modo">${e.asig ? esc(e.asig.modo === 'valija' ? 'VALIJA' : e.asig.modo === 'transportista' ? e.asig.trans.toUpperCase() : 'EN MANO') : 'TRANSPORTE: LO ASIGNA LOGÍSTICA'}</div>
@@ -1118,13 +1151,13 @@ function bloqueAsig(e){
   const t = ultimo(e, 'transito');
   let det = '';
   if(a.modo === 'valija'){ const r = rutaDe(a.ruta), px = e.estado === 'asignado' ? proximaSalida(r) : ''; det = textoRuta(r) + (px ? ' · próxima salida ' + px : ''); }
-  else if(a.modo === 'transportista'){ const u = t.seguimiento ? urlSeguimiento(a.trans, t.seguimiento) : ''; det = t.seguimiento ? `Nº de seguimiento ${esc(t.seguimiento)}${u ? ` · <a href="${esc(u)}" target="_blank" rel="noopener">Ver en ${esc(a.trans)}</a>` : ''}` : 'Pendiente de expedir'; return `<div class="modo"><span class="ic">${icon('truck')}</span><div><b>${esc(a.trans)}</b><span>${det} · ${a.auto ? 'asignado por las reglas' : 'asignado por ' + esc(a.por)}</span></div></div>`; }
+  else if(a.modo === 'transportista'){ const u = t.seguimiento ? urlSeguimiento(a.trans, t.seguimiento) : ''; det = t.seguimiento ? `Nº de seguimiento ${esc(t.seguimiento)}${u ? ` · <a href="${esc(u)}" target="_blank" rel="noopener">Ver en ${esc(a.trans)}</a>` : ''}` : (esRec(e) ? 'Pendiente de pedir la recogida' : 'Pendiente de expedir'); return `<div class="modo"><span class="ic">${icon('truck')}</span><div><b>${esc(a.trans)}</b><span>${det} · ${a.auto ? 'asignado por las reglas' : 'asignado por ' + esc(a.por)}</span></div></div>`; }
   else det = a.quien ? 'Lo lleva ' + a.quien : 'Lo lleva una persona';
   return `<div class="modo"><span class="ic">${icon(iconAsig(a))}</span><div><b>${a.modo === 'valija' ? 'Valija' : 'En mano'}</b><span>${esc(det)} · ${a.auto ? 'asignado por las reglas' : 'asignado por ' + esc(a.por)}</span></div></div>`;
 }
 /* Formulario de Logística para asignar o cambiar el transporte */
 function formAsig(e){
-  const a = e.asig || {}, ext = esExt(e);
+  const a = e.asig || {}, ext = porTrans(e);
   const rutas = (cfg.rutas || []), sug = ext ? null : rutaPara(e.origen, e.destino);
   const modoIni = a.modo || (ext ? 'transportista' : 'valija');
   return `<div class="fields">
@@ -1178,15 +1211,16 @@ async function vFicha(id, nuevo){
   } else if(nx){
     puede = puedePaso(e, nx);
     if(!puede){
-      const quien = nx === 'transito' ? `el almacén de ${donde(e.origen)}` : ext ? `Logística o el almacén de ${donde(e.origen)}` : `el almacén de ${donde(dest)}`;
+      const quien = nx === 'transito' ? (esRec(e) ? `Logística o el almacén de ${donde(dest)}` : `el almacén de ${donde(e.origen)}`) : ext ? `Logística o el almacén de ${donde(e.origen)}` : `el almacén de ${donde(dest)}`;
       accion = `<div class="card info-card"><span class="ic">${icon(alm ? 'lock' : 'clock')}</span><div><b>Siguiente paso: ${PASOS[nx].titulo(e).toLowerCase()}</b><p class="muted" style="margin:2px 0 0">Lo registra ${esc(quien)}.${alm && !logi ? ` Tu puesto es ${esc(miPuesto())}, desde aquí no puedes hacer este paso.` : ''}${Store === Cloud ? ' Esta página se actualiza sola.' : ''}</p></div></div>`;
     } else {
       const P = PASOS[nx];
-      const lblPor = { transito: ext ? 'Quién lo prepara' : e.asig.modo === 'valija' ? 'Quién lleva la valija' : 'Quién se lo lleva', recibido:'Quién lo recibe en destino', entregado: ext ? 'Quién lo confirma' : 'Quién lo entrega' }[nx];
+      const conSeg = nx === 'transito' && e.asig && e.asig.modo === 'transportista';
+      const lblPor = { transito: esRec(e) ? 'Quién pide la recogida' : ext ? 'Quién lo prepara' : e.asig.modo === 'valija' ? 'Quién lleva la valija' : 'Quién se lo lleva', recibido:'Quién lo recibe en destino', entregado: ext ? 'Quién lo confirma' : 'Quién lo entrega' }[nx];
       accion = `<div class="card next-card" style="--c:${col(nx)}">
         <div class="next-head"><span class="next-ic">${icon(ESTADOS[nx].icon)}</span><div><small>Paso ${idx + 2} de ${O.length}</small><b>${esc(P.titulo(e))}</b><p>${esc(P.texto(e))}</p></div></div>
         <div class="fields">
-          ${nx === 'transito' && ext ? `<div><label class="l">Nº de seguimiento de ${esc(e.asig.trans)}</label><input id="a-seg" autocomplete="off" placeholder="El que da el transportista"></div>
+          ${conSeg ? `<div><label class="l">Nº de seguimiento de ${esc(e.asig.trans)}</label><input id="a-seg" autocomplete="off" placeholder="El que da el transportista"></div>
             <div class="grid2"><div><label class="l">Bultos</label><input id="a-bul" type="number" min="1" value="${e.bultos}" inputmode="numeric"></div><div><label class="l">Peso real <i>(kg)</i></label><input id="a-peso" type="number" min="0" step="0.1" inputmode="decimal" value="${e.peso || ''}"></div></div>` : ''}
           <div><label class="l">${lblPor}</label>${campoPor(e, nx)}</div>
           ${nx === 'recibido' ? `<div><label class="l">Dónde se recibe</label><input id="a-lugar" value="${esc(donde(dest))}"></div>` : ''}
@@ -1205,7 +1239,7 @@ async function vFicha(id, nuevo){
   }
   const aviso = alm && e.estado === 'recibido' && dest.email
     ? `<div class="card"><div class="card-t">${icon('mail')} Avisar a ${esc(dest.persona)}</div><p class="muted" style="margin:-6px 0 12px">Se abrirá tu correo con el aviso ya escrito.</p><a class="btn sec" href="${mailAviso(e)}">${icon('mail')} Enviar aviso</a></div>` : '';
-  const verbo = h => ({ solicitado:'Pedido por', asignado:'Asignado por', transito: ext ? 'Preparado por' : 'Se lo llevó', recibido:'Recibido por', entregado: ext ? 'Confirmado por' : 'Entregado por' }[h.estado] || '');
+  const verbo = h => ({ solicitado:'Pedido por', asignado:'Asignado por', transito: esRec(e) ? 'Recogida pedida por' : ext ? 'Preparado por' : 'Se lo llevó', recibido:'Recibido por', entregado: ext ? 'Confirmado por' : 'Entregado por' }[h.estado] || '');
   const hist = e.historial.slice().reverse().map(h => `<li style="--c:${col(h.estado)}"><span class="d">${icon(ESTADOS[h.estado].icon)}</span><div>
       <b>${esc(h.estado === 'solicitado' ? 'Envío solicitado' : h.estado === 'asignado' ? 'Transporte: ' + (h.lugar || '') : pasoTxt(e, h.estado))}</b> <span class="t">· ${fmt(h.ts)}</span>
       <div class="t">${verbo(h)} ${esc(h.por)}${h.lugar && h.estado !== 'asignado' ? ' · ' + esc(h.lugar) : ''}</div>
@@ -1218,10 +1252,10 @@ async function vFicha(id, nuevo){
   const etqOpen = nuevo || antesDeSalir(e);
   $('#app').innerHTML = `
     <a class="back" href="#/${alm ? 'envios' : 'mis'}">${icon('back')} ${alm ? 'Envíos' : 'Mis envíos'}</a>
-    ${nuevo ? (alm ? `<div class="ok-banner"><span class="ic">${icon('check')}</span><div>Envío solicitado. ${e.asig ? 'Transporte: ' + esc(textoAsig(e)) + '.' : 'Queda pendiente de que Logística asigne el transporte.'} Imprime la etiqueta y pégala en el paquete.</div></div>`
+    ${nuevo ? (alm ? `<div class="ok-banner"><span class="ic">${icon('check')}</span><div>Envío solicitado. ${e.asig ? 'Transporte: ' + esc(textoAsig(e)) + '.' : 'Queda pendiente de que Logística asigne el transporte.'} ${esRec(e) ? 'Cuando llegue al almacén, imprime la etiqueta y pégala.' : 'Imprime la etiqueta y pégala en el paquete.'}</div></div>`
       : `<div class="card created"><div class="h"><span>${icon('check')}</span>Envío solicitado</div>
           <p style="margin:12px 0 0">Tu código de seguimiento:</p><div class="code-big">${esc(e.id)}</div>
-          <p style="margin:0 0 10px;font-size:14px">${e.asig ? 'Irá por ' + esc(textoAsig(e)) + '. ' : 'Logística decidirá cómo se envía. '}Apunta el código en el paquete (o imprime la etiqueta) y bájalo al almacén.</p>
+          <p style="margin:0 0 10px;font-size:14px">${e.asig ? 'Irá por ' + esc(textoAsig(e)) + '. ' : 'Logística decidirá cómo se envía. '}${esRec(e) ? 'Logística pedirá la recogida. Aquí verás cuándo llega al almacén.' : 'Apunta el código en el paquete (o imprime la etiqueta) y bájalo al almacén.'}</p>
           <div style="display:flex;gap:10px;align-items:center;background:#fff;border-radius:12px;padding:10px 12px;font-size:14px;color:var(--ink)"><span style="color:#ca8a04">${icon('star')}</span><div><b>Ya está en «Mis envíos».</b> Ahí verás cuándo sale, cuándo llega y cuándo se entrega.</div></div>
           <a class="btn" href="#/mis" style="margin-top:10px;width:100%;background:#16a34a">${icon('star')} Ver Mis envíos</a></div>`) : ''}
     <div class="card hero" style="--c:${col(e.estado)}">
@@ -1239,7 +1273,7 @@ async function vFicha(id, nuevo){
     ${nuevo ? '' : accion}
     <div class="card"><details class="box" ${etqOpen ? 'open' : ''}><summary>Etiqueta</summary>
       <div class="etq-wrap">${etiquetaHTML(e)}</div>
-      ${ext ? `<p class="muted" style="margin:10px 0 0;text-align:center">Es la etiqueta interna de seguimiento. Además, el paquete lleva la etiqueta del transportista.</p>` : ''}
+      ${ext ? `<p class="muted" style="margin:10px 0 0;text-align:center">Es la etiqueta interna de seguimiento. Además, el paquete lleva la etiqueta del transportista.</p>` : esRec(e) ? `<p class="muted" style="margin:10px 0 0;text-align:center">Imprímela cuando el paquete llegue al almacén y pégala para seguirlo hasta la entrega.</p>` : ''}
       ${e.bultos > 1 ? `<p class="muted" style="margin:10px 0 0;text-align:center">Se imprime una etiqueta por bulto (1/${e.bultos} … ${e.bultos}/${e.bultos}), todas con el mismo QR.</p>` : ''}
       <div class="btns" style="margin-top:14px"><button class="btn" id="b-print">${icon('printer')} ${e.bultos > 1 ? `Imprimir ${e.bultos} etiquetas` : 'Imprimir'}</button><button class="btn sec" id="b-copy">${icon('link')} Copiar enlace</button></div>
       ${urlOk() ? '' : `<div class="warn">${icon('alert')}<div>Estás en una vista previa, no en la web publicada: este QR no funcionará y puede que no se pueda imprimir. Publica la app y ábrela en el navegador, o pon su dirección en Ajustes.</div></div>`}
@@ -1248,7 +1282,7 @@ async function vFicha(id, nuevo){
     ${aviso}
     <div class="card"><div class="card-t">Historial</div><ul class="tl">${hist}</ul></div>
     <div class="card"><details class="box"><summary>Detalles</summary><dl class="kv">
-      <dt>Origen</dt><dd>${esc(lugar(e.origen))}<br><span class="muted">${esc(e.origen.persona)}</span></dd>
+      <dt>Origen</dt><dd>${esc(lugar(e.origen))}<br><span class="muted">${esc(e.origen.persona)}${e.origen.telefono ? ' · ' + esc(e.origen.telefono) : ''}${e.origen.horario ? ' · ' + esc(e.origen.horario) : ''}</span>${e.origen.referencia ? `<br><span class="muted">Ref. ${esc(e.origen.referencia)}</span>` : ''}</dd>
       <dt>Destino</dt><dd>${esc(lugar(dest))}<br><span class="muted">${esc(dest.persona || '')}${dest.telefono ? ' · ' + esc(dest.telefono) : ''}${dest.email ? ' · ' + esc(dest.email) : ''}</span></dd>
       <dt>Transporte</dt><dd>${esc(textoAsig(e))}</dd>
       <dt>Contenido</dt><dd>${esc(e.tipo)}${e.descripcion ? ' – ' + esc(e.descripcion) : ''}</dd>
@@ -1277,7 +1311,7 @@ async function vFicha(id, nuevo){
       let extra = {};
       if(nx === 'transito'){
         ev.lugar = donde(e.origen);
-        if(ext){
+        if($('#a-seg')){
           ev.seguimiento = $('#a-seg').value.trim();
           if(!ev.seguimiento){ toast('Apunta el número de seguimiento del transportista'); $('#a-seg').focus(); return; }
           extra = { bultos:Math.max(1, Number($('#a-bul').value) || e.bultos), peso:Number(String($('#a-peso').value).replace(',', '.')) || e.peso || 0 };
@@ -1321,8 +1355,8 @@ async function vLista(){
   filtroPend = false;
   $('#app').innerHTML = '<div class="empty">Cargando envíos…</div>';
   let todos; try{ todos = await Store.list(); }catch(err){ $('#app').innerHTML = `<div class="card">Error al cargar: ${esc(err.message)}</div>`; return; }
-  const cnt = k => k === 'valija' ? todos.filter(e => e.asig && e.asig.modo === 'valija' && e.estado !== 'entregado').length : k === 'fuera' ? todos.filter(e => esExt(e) && e.estado !== 'entregado').length : k === 'todos' ? todos.length : k === 'activos' ? todos.filter(e => e.estado !== 'entregado').length : k === 'urgentes' ? todos.filter(e => e.prioridad === 'urgente' && e.estado !== 'entregado').length : todos.filter(e => e.estado === k).length;
-  const chips = [['activos','En curso'],['urgentes','Urgentes'],['solicitado','Por asignar'],['asignado','Por preparar'],['transito','En tránsito'],['recibido','En destino'],['entregado','Entregados'],['valija','Valija'],['fuera','Fuera de la empresa'],['todos','Todos']];
+  const cnt = k => k === 'valija' ? todos.filter(e => e.asig && e.asig.modo === 'valija' && e.estado !== 'entregado').length : k === 'fuera' ? todos.filter(e => porTrans(e) && e.estado !== 'entregado').length : k === 'todos' ? todos.length : k === 'activos' ? todos.filter(e => e.estado !== 'entregado').length : k === 'urgentes' ? todos.filter(e => e.prioridad === 'urgente' && e.estado !== 'entregado').length : todos.filter(e => e.estado === k).length;
+  const chips = [['activos','En curso'],['urgentes','Urgentes'],['solicitado','Por asignar'],['asignado','Por preparar'],['transito','En tránsito'],['recibido','En destino'],['entregado','Entregados'],['valija','Valija'],['fuera','Fuera / recogidas'],['todos','Todos']];
   $('#app').innerHTML = `
     <div style="display:flex;align-items:center;gap:10px"><div class="h1" style="flex:1">Envíos</div><button class="btn ghost" id="rf" title="Actualizar" style="padding:10px">${icon('refresh')}</button></div>
     <p class="sub">Busca un envío o filtra por estado.</p>
@@ -1340,12 +1374,12 @@ async function vLista(){
     const num = /^\d{1,6}$/.test(q) ? Number(q) : null;
     const l = todos.filter(e => {
       if(num !== null) return Number(e.id.slice(-6)) === num;   // número de envío: busca ese envío exacto, en cualquier estado
-      if(q){ const t = [e.id, e.origen.persona, e.origen.sede, e.origen.edificio, e.destino.persona, e.destino.sede, e.destino.edificio, e.destino.empresa, e.destino.poblacion, textoAsig(e), (ultimo(e, 'transito').seguimiento || ''), e.tipo, e.descripcion, ...e.historial.map(h => h.por + ' ' + (h.receptor || ''))].join(' ').toLowerCase(); return t.includes(q); }  // texto: en todos los estados
+      if(q){ const t = [e.id, e.origen.persona, e.origen.sede, e.origen.edificio, e.destino.persona, e.destino.sede, e.destino.edificio, e.destino.empresa, e.destino.poblacion, e.origen.empresa, e.origen.poblacion, e.origen.referencia, textoAsig(e), (ultimo(e, 'transito').seguimiento || ''), e.tipo, e.descripcion, ...e.historial.map(h => h.por + ' ' + (h.receptor || ''))].join(' ').toLowerCase(); return t.includes(q); }  // texto: en todos los estados
       if(filtro.estado === 'activos' && e.estado === 'entregado') return false;
       if(filtro.estado === 'urgentes' && !(e.prioridad === 'urgente' && e.estado !== 'entregado')) return false;
       if(ESTADOS[filtro.estado] && e.estado !== filtro.estado) return false;
       if(filtro.estado === 'valija' && !(e.asig && e.asig.modo === 'valija' && e.estado !== 'entregado')) return false;
-      if(filtro.estado === 'fuera' && !(esExt(e) && e.estado !== 'entregado')) return false;
+      if(filtro.estado === 'fuera' && !(porTrans(e) && e.estado !== 'entregado')) return false;
       if(e.fecha < d1 || e.fecha > d2) return false;
       return true;
     }).sort((a,b) => (b.prioridad === 'urgente' && b.estado !== 'entregado') - (a.prioridad === 'urgente' && a.estado !== 'entregado') || b.creado - a.creado);
@@ -1367,7 +1401,7 @@ function exportCSV(l){
   const f = ts => ts ? fmt(ts) : '';
   const cols = ['ID','Estado','Prioridad','Fecha','Origen sede','Origen edificio','Origen planta','Envía','Destino','Destino dirección','Recibe','Transporte','Asignado por','Nº seguimiento','Tipo','Descripción','Bultos','Peso kg','Salida','Salida por','Recibido','Recibido por','Entregado','Entregado a'];
   const rows = l.map(e => { const t = ultimo(e,'transito'), r = ultimo(e,'recibido'), d = ultimo(e,'entregado');
-    return [e.id, labelDe(e), e.prioridad, f(e.fecha), e.origen.sede || '', e.origen.edificio, e.origen.planta, e.origen.persona, donde(e.destino), esExt(e) ? dirExt(e.destino) : lugar(e.destino), e.destino.persona, textoAsig(e), e.asig ? (e.asig.auto ? 'Reglas' : e.asig.por) : '', t.seguimiento || '', e.tipo, e.descripcion, e.bultos, e.peso ? String(e.peso).replace('.', ',') : '', f(t.ts), t.por || '', f(r.ts), r.por || '', f(d.ts), d.receptor || '']; });
+    return [e.id, labelDe(e), e.prioridad, f(e.fecha), esRec(e) ? donde(e.origen) : e.origen.sede || '', esRec(e) ? dirExt(e.origen) : e.origen.edificio, e.origen.planta || '', e.origen.persona, donde(e.destino), esExt(e) ? dirExt(e.destino) : lugar(e.destino), e.destino.persona, textoAsig(e), e.asig ? (e.asig.auto ? 'Reglas' : e.asig.por) : '', t.seguimiento || '', e.tipo, e.descripcion, e.bultos, e.peso ? String(e.peso).replace('.', ',') : '', f(t.ts), t.por || '', f(r.ts), r.por || '', f(d.ts), d.receptor || '']; });
   const csv = '﻿' + [cols, ...rows].map(r => r.map(v => '"' + String(v ?? '').replace(/"/g,'""') + '"').join(';')).join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
   a.download = 'logistica-' + new Date().toISOString().slice(0,10) + '.csv'; a.click();
