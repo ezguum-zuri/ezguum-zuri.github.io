@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f5f6fa">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Logística</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/barcodes/JsBarcode.code128.min.js"></script>
+<style>
+:root{
+  --bg:#f5f6fa;--card:#fff;--ink:#0f172a;--mute:#64748b;--line:#e5e7eb;--soft:#f1f5f9;
+  --pri:#4f46e5;--pri-soft:#eef2ff;--urg:#dc2626;--urg-soft:#fef2f2;
+  --c-solicitado:#64748b;--c-asignado:#7c3aed;--c-transito:#d97706;--c-recibido:#2563eb;--c-entregado:#16a34a;
+  --r:18px;--sh:0 1px 2px rgba(15,23,42,.04),0 4px 16px rgba(15,23,42,.06);
+  --nav-h:68px;--safe:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{color-scheme:light}
+body{margin:0;font:16px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,Roboto,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:calc(var(--nav-h) + var(--safe) + 16px)}
+svg.i{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+a{color:var(--pri)}
+button{font:inherit;color:inherit}
+
+/* ---- Barra superior ---- */
+.top{position:sticky;top:0;z-index:20;background:rgba(245,246,250,.85);backdrop-filter:saturate(180%) blur(14px);-webkit-backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid rgba(0,0,0,.04)}
+.top-in{max-width:980px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:12px}
+.logo{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,#6366f1,#4338ca);color:#fff;display:grid;place-items:center;box-shadow:0 4px 12px rgba(79,70,229,.35)}
+.logo svg.i{width:20px;height:20px}
+.brand{font-weight:700;font-size:17px;letter-spacing:-.01em;line-height:1.1}
+.brand small{display:block;font-weight:500;font-size:12px;color:var(--mute)}
+.tr{margin-left:auto;display:flex;gap:6px;align-items:center}
+.rol{font-size:12px;font-weight:700;padding:6px 12px;border-radius:14px;background:var(--ink);color:#fff;max-width:min(52vw,340px);line-height:1.2;text-align:center}
+.rol small{display:block;font-weight:500;font-size:11px;opacity:.75}
+.rol,.rol small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rol:empty{display:none}
+@media(max-width:520px){.brand small{display:none}.brand{font-size:15px}body.con-rol .brand{display:none}.rol{max-width:62vw}}
+.rf-btn{width:36px;height:36px;border-radius:50%;border:0;background:#fff;box-shadow:var(--sh);display:grid;place-items:center;cursor:pointer;color:var(--ink);flex:none}
+.rf-btn svg.i{width:18px;height:18px}
+.rf-btn.spin svg{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.conn{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:6px 10px;border-radius:99px;text-decoration:none;white-space:nowrap}
+.conn::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.conn.cloud{background:#dcfce7;color:#15803d}
+.conn.local{background:#fef3c7;color:#b45309}
+.conn.err{background:#fee2e2;color:#b91c1c}
+
+/* ---- Navegación inferior (móvil) ---- */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);padding:6px 8px calc(6px + var(--safe));display:grid;grid-template-columns:repeat(var(--n,5),1fr);align-items:end}
+.nav a{display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;color:#94a3b8;font-size:11px;font-weight:600;padding:6px 0}
+.nav a.on{color:var(--pri)}
+.nav a.fab{color:#fff}
+.nav a.fab span.b{width:58px;height:58px;border-radius:20px;background:linear-gradient(135deg,#6366f1,#4338ca);display:grid;place-items:center;margin-top:-26px;box-shadow:0 8px 20px rgba(79,70,229,.4);border:4px solid var(--bg)}
+.nav a.fab svg.i{width:26px;height:26px}
+.nav a.fab em{font-style:normal;color:#94a3b8}
+.nav a.fab.on em{color:var(--pri)}
+@media(min-width:900px){
+  body{padding-bottom:30px}
+  .nav{position:sticky;top:61px;bottom:auto;display:flex;justify-content:center;gap:4px;background:var(--bg);border:0;backdrop-filter:none;padding:10px;max-width:none;margin:0}
+  .nav a{flex-direction:row;font-size:14px;padding:9px 16px;border-radius:12px;gap:8px;color:var(--mute)}
+  .nav a:hover{background:#fff}
+  .nav a.on{background:#fff;box-shadow:var(--sh)}
+  .nav a.fab span.b{width:auto;height:auto;margin:0;background:none;box-shadow:none;border:0;display:contents}
+  .nav a.fab{color:var(--mute)}
+  .nav a.fab em{color:inherit}
+  .nav a.fab.on{color:var(--pri)}
+  .nav a.fab svg.i{width:22px;height:22px}
+}
+
+main{max-width:980px;margin:0 auto;padding:18px}
+@media(min-width:900px){main{padding-top:4px}}
+.h1{font-size:28px;font-weight:800;letter-spacing:-.025em;margin:4px 0 4px}
+.sub{color:var(--mute);margin:0 0 18px}
+.card{background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:var(--sh)}
+.card-t{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;margin:0 0 14px}
+.num{width:28px;height:28px;border-radius:50%;background:var(--pri);color:#fff;display:grid;place-items:center;font-size:14px;font-weight:700;flex:none}
+.muted{color:var(--mute);font-size:14px}
+.small{font-size:12px;color:var(--mute);word-break:break-all}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+
+/* ---- Formularios ---- */
+.f{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.f .s2{grid-column:span 2}.f .s4{grid-column:1/-1}
+@media(max-width:620px){.f{grid-template-columns:1fr 1fr}.f .s2,.f .s4{grid-column:1/-1}}
+label.l{display:block;font-size:13px;font-weight:600;color:#334155;margin:0 0 6px}
+label.l i{font-style:normal;font-weight:400;color:var(--mute)}
+input,select,textarea{width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;font:inherit;font-size:16px;background:#fff;color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--pri);box-shadow:0 0 0 4px var(--pri-soft)}
+input:disabled,textarea:disabled{background:var(--soft);color:var(--mute)}
+textarea{min-height:84px;resize:vertical}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{position:relative}
+.pill input{position:absolute;opacity:0;pointer-events:none}
+.pill span{display:inline-block;padding:10px 16px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-size:15px;font-weight:500;cursor:pointer;transition:.15s}
+.pill input:checked+span{background:var(--ink);border-color:var(--ink);color:#fff}
+.prio{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.prio label{position:relative;cursor:pointer}
+.prio input{position:absolute;opacity:0}
+.prio span{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border-radius:14px;border:1.5px solid var(--line);font-weight:600;transition:.15s}
+.prio input:checked+span{border-color:var(--pri);background:var(--pri-soft);color:var(--pri)}
+.prio input[value=urgente]:checked+span{border-color:var(--urg);background:var(--urg-soft);color:var(--urg)}
+.stepperN{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.stepperN button{width:48px;height:48px;border:0;background:var(--soft);font-size:22px;cursor:pointer}
+.stepperN input{border:0;text-align:center;border-radius:0;box-shadow:none!important;font-weight:700}
+details.more summary{cursor:pointer;color:var(--pri);font-weight:600;font-size:14px;list-style:none;padding:4px 0}
+details.more summary::-webkit-details-marker{display:none}
+
+/* ---- Botones ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;border:0;border-radius:14px;padding:13px 18px;font-weight:650;font-size:15px;cursor:pointer;background:var(--pri);color:#fff;text-decoration:none;transition:transform .1s,filter .15s}
+.btn:active{transform:scale(.98)}
+.btn:hover{filter:brightness(1.06)}
+.btn.sec{background:var(--pri-soft);color:var(--pri)}
+.btn.ghost{background:var(--soft);color:var(--ink)}
+.btn.big{width:100%;padding:17px;font-size:17px;border-radius:16px}
+.btn:disabled{opacity:.55;pointer-events:none}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+.btns .btn{flex:1;min-width:140px}
+.sticky-go{position:sticky;bottom:calc(var(--nav-h) + var(--safe) + 8px);z-index:10;margin-top:6px}
+.sticky-go .btn{box-shadow:0 10px 24px rgba(79,70,229,.35)}
+@media(min-width:900px){.sticky-go{bottom:16px}}
+
+/* ---- Inicio ---- */
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.act{display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:var(--r);text-decoration:none;color:#fff;min-height:150px;box-shadow:var(--sh);position:relative;overflow:hidden}
+.act::after{content:"";position:absolute;right:-30px;bottom:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.12)}
+.act.a1{background:linear-gradient(140deg,#6366f1,#4338ca)}
+.act.a2{background:linear-gradient(140deg,#0f172a,#334155)}
+.act .ic{width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.18);display:grid;place-items:center}
+.act b{font-size:19px;letter-spacing:-.01em}
+.act small{display:block;opacity:.8;font-size:13px;font-weight:500;margin-top:2px}
+.how{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;counter-reset:h}
+.how div{text-align:center;font-size:12px;color:var(--mute);line-height:1.25}
+.how .d{width:44px;height:44px;border-radius:14px;margin:0 auto 8px;display:grid;place-items:center;color:#fff}
+.how b{display:block;color:var(--ink);font-size:13px;margin-bottom:2px}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:620px){.stats{grid-template-columns:1fr 1fr}}
+.stat{background:#fff;border-radius:16px;padding:14px;box-shadow:var(--sh);border:0;text-align:left;cursor:pointer}
+.stat b{display:block;font-size:28px;font-weight:800;letter-spacing:-.02em;color:var(--c)}
+.stat span{font-size:13px;color:var(--mute);font-weight:600}
+
+/* ---- Estados ---- */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;font-size:12px;font-weight:700;background:color-mix(in srgb,var(--c) 13%,#fff);color:var(--c);white-space:nowrap}
+.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.badge.urg{--c:var(--urg)}
+.stepper{display:grid;grid-template-columns:repeat(var(--n,5),1fr);list-style:none;padding:0;margin:20px 0 4px}
+.stepper li{position:relative;text-align:center;font-size:12px;color:var(--mute);padding:0 2px}
+.stepper li::before{content:"";position:absolute;top:20px;right:50%;width:100%;height:3px;background:var(--line);z-index:0}
+.stepper li:first-child::before{display:none}
+.stepper li.done::before{background:var(--c)}
+.stepper .dot{position:relative;z-index:1;width:42px;height:42px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;background:#fff;border:2px solid var(--line);color:#cbd5e1}
+.stepper .dot svg.i{width:20px;height:20px}
+.stepper li.done .dot{background:var(--c);border-color:var(--c);color:#fff}
+.stepper li.next .dot{border:2px dashed var(--c);color:var(--c);animation:pulse 1.8s infinite}
+.stepper b{display:block;font-size:13px;color:#94a3b8;font-weight:600}
+.stepper li.done b,.stepper li.next b{color:var(--ink)}
+.stepper small{display:block;font-size:11px;margin-top:1px;min-height:14px}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 35%,transparent)}50%{box-shadow:0 0 0 8px transparent}}
+.mini{display:grid;grid-template-columns:repeat(var(--n,5),1fr);gap:4px;margin-top:10px}
+.mini span{height:5px;border-radius:9px;background:var(--line)}
+.mini span.on{background:var(--c)}
+
+/* ---- Ficha ---- */
+.back{display:inline-flex;align-items:center;gap:4px;color:var(--mute);text-decoration:none;font-weight:600;font-size:14px;margin-bottom:10px}
+.hero{border-top:5px solid var(--c)}
+.hero-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.idm{font:700 15px ui-monospace,"SF Mono",Menlo,monospace;color:var(--mute);letter-spacing:.02em}
+.frase{font-size:20px;font-weight:700;letter-spacing:-.015em;margin:12px 0 0;line-height:1.3}
+.route{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;background:var(--soft);border-radius:14px;padding:12px 14px;margin-top:14px}
+.route small{display:block;font-size:11px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+.route b{display:block;font-size:15px}
+.route span{font-size:13px;color:var(--mute)}
+.route .arr{color:#94a3b8}
+.route div:last-child{text-align:right}
+.next-card{border:2px solid var(--c);background:color-mix(in srgb,var(--c) 5%,#fff)}
+.next-head{display:flex;gap:14px;align-items:center;margin-bottom:14px}
+.next-ic{width:52px;height:52px;border-radius:16px;background:var(--c);color:#fff;display:grid;place-items:center;flex:none}
+.next-ic svg.i{width:26px;height:26px}
+.next-head small{display:block;font-size:12px;font-weight:700;color:var(--c);text-transform:uppercase;letter-spacing:.06em}
+.next-head b{display:block;font-size:20px;letter-spacing:-.015em}
+.next-head p{margin:2px 0 0;color:var(--mute);font-size:14px}
+.next-card .btn.big{background:var(--c);box-shadow:0 10px 22px color-mix(in srgb,var(--c) 35%,transparent)}
+.fields{display:grid;gap:12px;margin-bottom:14px}
+.done-card{text-align:center;background:linear-gradient(140deg,#16a34a,#15803d);color:#fff}
+.done-card .ic{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;margin:0 auto 8px}
+.done-card .ic svg.i{width:32px;height:32px;stroke-width:3}
+.ok-banner{display:flex;gap:12px;align-items:center;background:#dcfce7;color:#14532d;border-radius:var(--r);padding:14px 16px;margin-bottom:14px;font-weight:600}
+.ok-banner .ic{width:36px;height:36px;border-radius:50%;background:#16a34a;color:#fff;display:grid;place-items:center;flex:none}
+.warn{display:flex;gap:10px;background:#fef3c7;color:#92400e;border-radius:12px;padding:12px;font-size:13px;font-weight:500;margin-top:12px}
+.sig{width:100%;height:160px;border:1.5px dashed #cbd5e1;border-radius:12px;background:#fff;touch-action:none;display:block}
+.sig-w{position:relative}
+.sig-w .btn{position:absolute;right:8px;top:8px;padding:6px 10px;font-size:12px;border-radius:9px}
+.sig-w .ph{position:absolute;inset:0;display:grid;place-items:center;color:#cbd5e1;pointer-events:none;font-size:14px}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{display:grid;grid-template-columns:36px 1fr;gap:12px;padding-bottom:16px;position:relative}
+.tl li::before{content:"";position:absolute;left:17px;top:36px;bottom:0;width:2px;background:var(--line)}
+.tl li:last-child::before{display:none}
+.tl .d{width:36px;height:36px;border-radius:12px;background:color-mix(in srgb,var(--c) 14%,#fff);color:var(--c);display:grid;place-items:center}
+.tl .d svg.i{width:18px;height:18px}
+.tl b{font-size:15px}
+.tl .t{font-size:13px;color:var(--mute)}
+.tl img{max-width:220px;width:100%;border:1px solid var(--line);border-radius:10px;margin-top:6px;background:#fff}
+dl.kv{display:grid;grid-template-columns:110px 1fr;gap:10px 12px;margin:0;font-size:15px}
+dl.kv dt{color:var(--mute);font-size:14px}
+dl.kv dd{margin:0;font-weight:500}
+details.box>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:17px}
+details.box>summary::-webkit-details-marker{display:none}
+details.box>summary::after{content:"›";font-size:26px;color:var(--mute);transform:rotate(90deg);transition:.2s;line-height:1}
+details.box[open]>summary::after{transform:rotate(-90deg)}
+details.box[open]>summary{margin-bottom:14px}
+
+/* ---- Lista ---- */
+.search{position:relative;margin-bottom:12px}
+.search svg.i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#94a3b8;width:20px;height:20px}
+.search input{padding-left:44px;background:#fff;border-color:transparent;box-shadow:var(--sh)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;margin:0 -18px;padding-left:18px;padding-right:18px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:0;background:#fff;border-radius:99px;padding:9px 14px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:var(--sh);color:#334155}
+.chip i{font-style:normal;color:var(--mute);font-weight:500;margin-left:4px}
+.chip.on{background:var(--ink);color:#fff}
+.chip.on i{color:#cbd5e1}
+.item{display:block;text-decoration:none;color:inherit;background:#fff;border-radius:16px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--sh);transition:transform .1s}
+.item:active{transform:scale(.99)}
+.item .r1{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.item .r2{font-weight:650;font-size:16px;margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.item .r2 svg.i{width:16px;height:16px;color:#94a3b8}
+.item .r3{font-size:13px;color:var(--mute);margin-top:2px}
+.item.urg{box-shadow:inset 4px 0 0 var(--urg),var(--sh)}
+.empty{text-align:center;color:var(--mute);padding:40px 16px}
+.empty .ic{width:64px;height:64px;border-radius:20px;background:#fff;display:grid;place-items:center;margin:0 auto 12px;box-shadow:var(--sh);color:#94a3b8}
+
+/* ---- Escáner ---- */
+.scan{position:relative;border-radius:24px;overflow:hidden;background:#000;aspect-ratio:3/4;max-height:62vh;margin:0 auto 14px;width:100%;max-width:520px}
+.scan video{width:100%;height:100%;object-fit:cover;display:block}
+.scan .frame{position:absolute;inset:18%;border-radius:22px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
+.scan .frame::before,.scan .frame::after{content:"";position:absolute;inset:-3px;border:4px solid #fff;border-radius:24px;clip-path:polygon(0 0,28% 0,28% 4px,4px 4px,4px 28%,0 28%,0 72%,4px 72%,4px calc(100% - 4px),28% calc(100% - 4px),28% 100%,72% 100%,72% calc(100% - 4px),calc(100% - 4px) calc(100% - 4px),calc(100% - 4px) 72%,100% 72%,100% 28%,calc(100% - 4px) 28%,calc(100% - 4px) 4px,72% 4px,72% 0,100% 0,100% 100%,0 100%)}
+.scan .frame::after{display:none}
+.scan .line{position:absolute;left:20%;right:20%;height:2px;background:#818cf8;box-shadow:0 0 12px #818cf8;top:20%;animation:scanl 2.2s ease-in-out infinite}
+@keyframes scanl{0%,100%{top:20%}50%{top:80%}}
+.scan .st{position:absolute;left:0;right:0;bottom:16px;text-align:center;color:#fff;font-weight:600;font-size:14px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.row-in{display:flex;gap:8px}
+.row-in input{font-family:ui-monospace,Menlo,monospace;text-transform:uppercase}
+
+/* ---- Toast ---- */
+.info-card{display:flex;gap:14px;align-items:center}
+.info-card .ic{width:48px;height:48px;border-radius:14px;background:var(--soft);color:var(--mute);display:grid;place-items:center;flex:none}
+.info-card b{font-size:16px}
+.created{background:#dcfce7;box-shadow:none;color:#14532d}
+.created .h{display:flex;gap:12px;align-items:center;font-size:18px;font-weight:700}
+.created .h span{width:36px;height:36px;border-radius:50%;background:#16a34a;color:#fff;display:grid;place-items:center;flex:none}
+.code-big{font:800 26px ui-monospace,Menlo,monospace;letter-spacing:.02em;background:#fff;color:var(--ink);border-radius:12px;padding:10px 14px;display:inline-block;margin:6px 0 10px}
+.follow{margin-top:12px}
+.follow .btn{width:100%}
+.btn.on-star svg.i{fill:currentColor}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#15803d;background:#dcfce7;padding:6px 10px;border-radius:99px}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:#22c55e;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.3}}
+input.pin:not(:placeholder-shown){-webkit-text-security:disc;text-security:disc;letter-spacing:.2em}
+.pu-row{display:grid;grid-template-columns:1fr .8fr 1fr 44px;gap:8px;margin-bottom:8px;align-items:center}
+.pu-row .pu-del{padding:12px 0}
+.pu-row input,.pu-row select{padding:12px 10px;min-width:0}
+.per-g{border-top:1px solid var(--line);padding:12px 0 6px}
+.per-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
+.per-row{display:flex;align-items:center;gap:6px;padding:7px 0;flex-wrap:wrap}
+.per-row>div{flex:1;min-width:150px;display:flex;flex-direction:column}
+.per-row .t{font-size:12px;color:var(--mute)}
+.btn.sm{padding:8px 11px;font-size:13px;border-radius:10px}
+.btn.del{color:#b91c1c}
+.per-form{background:var(--soft);border-radius:14px;padding:14px;margin:10px 0}
+.pu-checks{display:flex;flex-wrap:wrap;gap:8px}
+.pu-checks label{display:flex;gap:7px;align-items:center;background:#fff;padding:8px 11px;border-radius:10px;font-size:14px;cursor:pointer;border:1.5px solid var(--line)}
+.pu-checks input{width:auto;padding:0;margin:0}
+@media(max-width:620px){.pu-row{grid-template-columns:1fr 1fr 44px;padding-bottom:10px;border-bottom:1px solid var(--line)}.pu-row .pu-se{grid-column:1/-1}.pu-head{display:none}}
+.pu-head span{font-size:13px;font-weight:600;color:#334155}
+
+/* ---- Logística ---- */
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.seg label{position:relative;cursor:pointer}
+.seg input{position:absolute;opacity:0}
+.seg span{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 10px;border-radius:14px;border:1.5px solid var(--line);font-weight:650;text-align:center;transition:.15s}
+.seg span small{font-weight:500;font-size:12px;color:var(--mute)}
+.seg input:checked+span{border-color:var(--pri);background:var(--pri-soft);color:var(--pri)}
+.modo{display:flex;gap:12px;align-items:center;background:var(--soft);border-radius:14px;padding:12px 14px;margin-top:10px}
+.modo .ic{width:40px;height:40px;border-radius:12px;background:var(--c-asignado);color:#fff;display:grid;place-items:center;flex:none}
+.modo .ic svg.i{width:20px;height:20px}
+.modo b{display:block;font-size:15px}
+.modo span{font-size:13px;color:var(--mute)}
+.modo.pend .ic{background:#94a3b8}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:8px;font-size:12px;font-weight:700;background:var(--soft);color:#334155;white-space:nowrap}
+.tag svg.i{width:14px;height:14px}
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.checks label{display:flex;gap:7px;align-items:center;background:#fff;padding:9px 12px;border-radius:10px;font-size:14px;cursor:pointer;border:1.5px solid var(--line)}
+.checks input{width:auto;padding:0;margin:0}
+.rule-row{display:grid;grid-template-columns:1fr 1fr .8fr 1fr 44px;gap:8px;margin-bottom:8px;align-items:center}
+.ruta-row{display:grid;grid-template-columns:1fr 1fr .8fr .7fr 44px;gap:8px;margin-bottom:8px;align-items:center}
+.car-row{display:grid;grid-template-columns:.7fr 2fr 44px;gap:8px;margin-bottom:8px;align-items:center}
+.rule-row>*,.ruta-row>*,.car-row>*{min-width:0}
+.rule-row input,.rule-row select,.ruta-row input,.ruta-row select,.car-row input{padding:12px 10px}
+.rule-row .x,.ruta-row .x,.car-row .x{padding:12px 0}
+.hd span{font-size:13px;font-weight:600;color:#334155}
+@media(max-width:620px){
+  .rule-row,.ruta-row{grid-template-columns:1fr 1fr 44px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .rule-row{grid-template-areas:"am am x" "pr kg kg" "tr tr tr"}
+  .rule-row .rg-am{grid-area:am}.rule-row .rg-pr{grid-area:pr}.rule-row .rg-kg{grid-area:kg}.rule-row .rg-tr{grid-area:tr}.rule-row .x{grid-area:x}
+  .ruta-row{grid-template-areas:"a a x" "b b b" "d h h"}
+  .ruta-row .ru-a{grid-area:a}.ruta-row .ru-b{grid-area:b}.ruta-row .ru-d{grid-area:d}.ruta-row .ru-h{grid-area:h}.ruta-row .x{grid-area:x}
+  .hd{display:none!important}}
+.vg{border-top:1px solid var(--line);padding:14px 0 4px}
+.card-t+.vg{border-top:0;padding-top:0}
+.vg-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.vrow{display:flex;gap:10px;align-items:center;padding:8px 0;font-size:14px}
+.vrow input{width:auto;margin:0}
+.vrow a{font-weight:700;text-decoration:none;font-family:ui-monospace,Menlo,monospace}
+.vrow div{flex:1;min-width:0}
+.vrow small{display:block;color:var(--mute)}
+.etq-modo{background:#000;color:#fff;font-weight:900;font-size:9pt;padding:.8mm 1.5mm;margin-bottom:1mm;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.hoja{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:10pt}
+.hoja h1{font-size:16pt;margin:0 0 2mm}
+.hoja p{margin:0 0 4mm}
+.hoja table{width:100%;border-collapse:collapse}
+.hoja th,.hoja td{border:1px solid #000;padding:1.8mm;text-align:left;vertical-align:top}
+.hoja th{background:#eee;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.hoja .firmas{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6mm;margin-top:10mm}
+.hoja .firmas div{border-top:1px solid #000;padding-top:1.5mm;font-size:9pt}
+#toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + var(--safe) + 20px);transform:translate(-50%,30px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;font-weight:600;font-size:14px;opacity:0;transition:.25s;z-index:50;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:90vw;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---- Etiqueta ---- */
+.etq-wrap{display:flex;justify-content:center;padding:14px;background:var(--soft);border-radius:14px;overflow:auto}
+.etq{width:100mm;height:70mm;background:#fff;color:#000;border:1px solid #000;display:flex;flex-direction:column;gap:1.5mm;padding:3mm;font-family:Arial,Helvetica,sans-serif;overflow:hidden;flex:none;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.etq-top{display:flex;gap:3mm;flex:1;min-height:0}
+.etq-bar{height:11mm;flex:none;display:flex;flex-direction:column;align-items:center}
+.etq-bar svg{width:80mm;height:9mm;display:block}
+.etq-bar span{font:700 7pt 'Courier New',monospace;letter-spacing:.15em;margin-top:.3mm}
+.etq-qr{width:38mm;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
+.etq-qr svg{width:36mm;height:36mm;display:block}
+.etq-bul{width:100%;margin-top:1mm;border:2px solid #000;border-radius:1.5mm;display:flex;align-items:center;justify-content:center;gap:2mm;padding:.5mm 0;line-height:1}
+.etq-bul small{font-size:7pt;font-weight:700;letter-spacing:.08em;writing-mode:vertical-rl;transform:rotate(180deg)}
+.etq-bul b{font-size:22pt;font-weight:900;letter-spacing:-.02em}
+.etq-bul b i{font-style:normal;font-size:14pt;font-weight:700}
+.etq-qr .cap{font-size:7pt;text-align:center;margin-top:1mm}
+.etq-info{flex:1;min-width:0;display:flex;flex-direction:column;font-size:8.5pt;line-height:1.2}
+.etq-emp{font-size:7pt;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #000;padding-bottom:1mm;margin-bottom:1mm}
+.etq-id{font:700 12pt "Courier New",monospace}
+.etq-idr{margin-bottom:1mm;white-space:nowrap}
+.etq-urg{background:#000;color:#fff;font-weight:900;text-align:center;font-size:17pt;line-height:1;padding:1.2mm 0;margin-bottom:1mm;letter-spacing:.08em;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.etq-l{font-size:6.5pt;font-weight:700;margin-top:1mm}
+.etq-dest{font-size:11pt;font-weight:700;line-height:1.15}
+.etq-desc{margin-top:auto;font-size:7.5pt;border-top:1px solid #000;padding-top:1mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:480px){.etq-wrap{padding:10px}.etq-wrap .etq{zoom:.8}}
+#etiqueta-print{display:none}
+@media print{
+  body{background:#fff;padding:0}
+  body>*:not(#etiqueta-print){display:none!important}
+  #etiqueta-print{display:block}
+  #etiqueta-print .etq{break-after:page;page-break-after:always}
+  #etiqueta-print .etq:last-child{break-after:auto;page-break-after:auto}
+  #etiqueta-print.a4 .etq{break-after:auto;page-break-after:auto;break-inside:avoid;page-break-inside:avoid;margin:0 auto 6mm;border:1px dashed #999}
+  .etq{border:none;box-shadow:none}
+}
+</style>
+<style id="page-style">@page{size:100mm 70mm;margin:0}</style>
+</head>
+<body>
+<div class="top"><div class="top-in">
+  <div class="logo"><svg class="i" viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg></div>
+  <div class="brand"><span id="h-emp">Logística</span><small>Valija y transportistas</small></div>
+  <div class="tr"><span id="rol" class="rol"></span><a id="conn" class="conn" href="#/ajustes"></a><button id="recargar" class="rf-btn" title="Actualizar" aria-label="Actualizar"><svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button></div>
+</div></div>
+<nav class="nav" id="nav"></nav>
+<main id="app"></main>
+<div id="toast"></div>
+<div id="etiqueta-print"></div>
+
+<script>
+/* =====================================================================
+   CONFIGURACIÓN DE LA EMPRESA — rellenar UNA VEZ antes de publicar.
+   Lo que se ponga aquí se aplica a todos los ordenadores y móviles,
+   y ya no hay que configurar nada en Ajustes.
+   ===================================================================== */
+const CONFIG_FIJA = {
+  empresa:   '',   // Nombre en la etiqueta. Ej.: 'Ingeteam · Logística'
+  baseUrl:   '',   // Dirección donde se publica la app. Ej.: 'https://intranet.empresa.com/logistica/'
+  sedes:     [],   // Ej.: ['Zamudio', 'Ortuella']
+  edificios: [],   // Ej.: ['106', 'Ballonti']
+  pinAlmacen: '1234', // PIN de almacén/recepción (PRUEBAS: cámbialo). Cada almacén elige además su puesto.
+  pinLogistica: '5678', // PIN de Logística (PRUEBAS: cámbialo). Asigna el transporte y edita rutas y reglas.
+  pinAdmin:   '9999', // PIN de administrador (PRUEBAS: cámbialo). Puede hacer cualquier paso y configurar la app.
+                      // Sin ningún PIN, cualquier aparato puede hacerlo todo.
+  firebase:  {     // Proyecto de PRUEBAS (envios-pruebas). La empresa pondrá aquí el suyo.
+    apiKey: "AIzaSyAmYq080wkPXwDZbMKY8aqyAkEsfp5ZdOQ",
+    authDomain: "envios-pruebas.firebaseapp.com",
+    projectId: "envios-pruebas",
+    storageBucket: "envios-pruebas.firebasestorage.app",
+    messagingSenderId: "50762282732",
+    appId: "1:50762282732:web:477ec2fd3faec1ad0f57c9"
+  }
+                   // Pegar aquí el objeto firebaseConfig de Firebase. Ej.:
+                   // { apiKey: "...", authDomain: "...", projectId: "...", storageBucket: "...", messagingSenderId: "...", appId: "..." }
+};
+/* Colecciones de Firebase: separadas de la app de envíos internos para que las dos convivan en el mismo proyecto. */
+const C = { envios:'log_envios', contadores:'log_contadores', config:'log_config', usuarios:'log_usuarios' };
+/* ===================================================================== */
+
+/* ===== Iconos ===== */
+const IC = {
+  home:'<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  scan:'<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  cog:'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  package:'<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/>',
+  truck:'<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  building:'<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"/>',
+  userCheck:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  printer:'<path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+  link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
+  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+  arrow:'<path d="M5 12h14M12 5l7 7-7 7"/>',
+  back:'<path d="m15 18-6-6 6-6"/>',
+  alert:'<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>',
+  refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  star:'<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>',
+  lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  route:'<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',
+  bag:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/>',
+  globe:'<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20"/>',
+  hand:'<path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>'
+};
+const icon = n => `<svg class="i" viewBox="0 0 24 24">${IC[n] || ''}</svg>`;
+
+/* ===== Utilidades ===== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){ alert('No se pudo guardar en este dispositivo: ' + e.message); } }
+};
+const fmt = ts => new Date(ts).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+const hora = ts => new Date(ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+const corto = ts => { const d = new Date(ts), h = new Date(); return d.toDateString() === h.toDateString() ? hora(ts) : d.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'}) + ' ' + hora(ts); };
+const fmtId = (y, n) => `LOG-${y}-${String(n).padStart(6,'0')}`;
+const lugar = o => o.externo ? [o.empresa, dirExt(o)].filter(Boolean).join(' · ') : [o.sede, o.edificio ? 'Edif. ' + o.edificio : '', o.punto, o.planta ? 'Pl. ' + o.planta : ''].filter(Boolean).join(' · ');
+const donde = o => o.externo ? [o.empresa, o.poblacion].filter(Boolean).join(' · ') : [o.sede, o.edificio, o.punto].filter(Boolean).join(' · ');
+const dirExt = o => [o.direccion, [o.cp, o.poblacion].filter(Boolean).join(' '), o.provincia, o.pais && norm(o.pais) !== 'espana' ? o.pais : ''].filter(Boolean).join(', ');
+let toastT; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
+
+/* ===== Configuración ===== */
+const DEF = { empresa:'Logística', baseUrl:'', sedes:['Zamudio','Ortuella'], edificios:['106','108','Ballonti'], puestos:['Zamudio · 106','Zamudio · 108','Ortuella · Ballonti'], etiqueta:'100x70', firebase:'', usuario:'', pin:'', pinLog:'', pinAdmin:'',
+  /* Rutas de valija entre almacenes (sirven en los dos sentidos). Días: L M X J V S D, con guion para rangos (L-V) o comas (L,X,V). */
+  rutas:[
+    { id:'r1', a:'Zamudio · 106', b:'Zamudio · 108',        dias:'L-V', hora:'' },
+    { id:'r2', a:'Zamudio · 106', b:'Ortuella · Ballonti',  dias:'L-V', hora:'' },
+    { id:'r3', a:'Zamudio · 108', b:'Ortuella · Ballonti',  dias:'L-V', hora:'' }
+  ],
+  /* Reglas para envíos fuera de la empresa: se aplica la primera que encaja. */
+  reglas:[
+    { ambito:'nacional',      prio:'cualquiera', pesoMax:'',  trans:'MRW' },
+    { ambito:'internacional', prio:'cualquiera', pesoMax:'',  trans:'DHL' }
+  ],
+  transportistas:[
+    { nombre:'MRW', url:'https://www.mrw.es/seguimiento_envios/' },
+    { nombre:'DHL', url:'https://www.dhl.com/es-es/home/tracking/tracking-express.html?submit=1&tracking-id={n}' }
+  ],
+  manualUrgInt:false   // true: los urgentes internos los asigna Logística a mano
+};
+const FIJO = {};
+if(CONFIG_FIJA.empresa) FIJO.empresa = CONFIG_FIJA.empresa;
+if(CONFIG_FIJA.baseUrl) FIJO.baseUrl = CONFIG_FIJA.baseUrl;
+if(CONFIG_FIJA.sedes && CONFIG_FIJA.sedes.length) FIJO.sedes = CONFIG_FIJA.sedes;
+if(CONFIG_FIJA.edificios && CONFIG_FIJA.edificios.length) FIJO.edificios = CONFIG_FIJA.edificios;
+if(CONFIG_FIJA.pinAlmacen) FIJO.pin = String(CONFIG_FIJA.pinAlmacen);
+if(CONFIG_FIJA.pinAdmin) FIJO.pinAdmin = String(CONFIG_FIJA.pinAdmin);
+if(CONFIG_FIJA.pinLogistica) FIJO.pinLog = String(CONFIG_FIJA.pinLogistica);
+let cfg = Object.assign({}, DEF, LS.get('log_cfg', {}), FIJO);
+const fijo = k => k === 'firebase' ? !!CONFIG_FIJA.firebase : k in FIJO;
+const nf = k => fijo(k) ? ' disabled title="Fijado por la empresa"' : '';
+const saveCfg = () => LS.set('log_cfg', cfg);
+const webReal = () => /^https?:$/.test(location.protocol) && location.origin !== 'null';
+const baseUrl = () => cfg.baseUrl ? cfg.baseUrl.trim() : webReal() ? location.origin + location.pathname : 'https://configura-la-direccion-en-ajustes/';
+const urlOk = () => !!cfg.baseUrl || webReal();
+const urlEnvio = id => { const b = baseUrl(); return b + (b.includes('?') ? '&' : '?') + 'envio=' + encodeURIComponent(id); };
+
+/* ===== Estados y pasos ===== */
+/* Interno (valija o en mano): solicitado → asignado → transito → recibido → entregado
+   Fuera de la empresa (transportista): solicitado → asignado → transito (expedido) → entregado */
+const esExt = e => !!(e.destino && e.destino.externo);
+const ordenDe = e => esExt(e) ? ['solicitado','asignado','transito','entregado'] : ['solicitado','asignado','transito','recibido','entregado'];
+const sigDe = e => { const o = ordenDe(e), i = o.indexOf(e.estado); return i >= 0 && i < o.length - 1 ? o[i + 1] : null; };
+const ESTADOS = {
+  solicitado:{ label:'Por asignar transporte', paso:'Solicitado', icon:'package' },
+  asignado:  { label:'Por preparar',           paso:'Asignado',   icon:'route' },
+  transito:  { label:'En tránsito',            paso:'Salida',     icon:'truck' },
+  recibido:  { label:'En destino',             paso:'En destino', icon:'building' },
+  entregado: { label:'Entregado',              paso:'Entregado',  icon:'userCheck' }
+};
+const pasoTxt = (e, k) => k === 'transito' ? (esExt(e) ? 'Expedido' : e.asig && e.asig.modo === 'valija' ? 'En valija' : 'Salida') : ESTADOS[k].paso;
+const labelDe = e => e.estado === 'transito' ? (esExt(e) ? 'Expedido' : e.asig && e.asig.modo === 'valija' ? 'En la valija' : 'En tránsito') : ESTADOS[e.estado].label;
+const PASOS = {
+  transito:  { titulo:e => esExt(e) ? 'Expedir con ' + (e.asig.trans || 'el transportista') : e.asig.modo === 'valija' ? 'Cargar en la valija' : 'Dar salida',
+               texto:e => esExt(e) ? `Prepara el paquete en ${donde(e.origen)}, pega la etiqueta del transportista y apunta su número de seguimiento.` : e.asig.modo === 'valija' ? `Pulsa cuando el paquete salga de ${donde(e.origen)} en la valija.` : `Pulsa cuando el paquete salga de ${donde(e.origen)}.`,
+               boton:e => esExt(e) ? 'Confirmar expedición' : e.asig.modo === 'valija' ? 'Cargado en la valija' : 'Confirmar salida' },
+  recibido:  { titulo:() => 'Recibir en destino',       texto:e => `Pulsa cuando el paquete llegue a ${donde(e.destino)}.`,                   boton:() => 'Confirmar llegada' },
+  entregado: { titulo:e => esExt(e) ? 'Confirmar la entrega' : 'Entregar al destinatario',
+               texto:e => esExt(e) ? `Cuando el transportista lo haya entregado a ${e.destino.empresa || e.destino.persona}.` : `Entrega el paquete a ${e.destino.persona}. Puede firmar en la pantalla.`,
+               boton:() => 'Confirmar entrega' }
+};
+
+/* ===== Asignación de transporte (Logística) ===== */
+const ALMACENES = () => (cfg.puestos || []).filter(p => !parsePuesto(p).pu);
+const mismoSitio = (o, puesto) => { const P = parsePuesto(puesto); return norm(o.sede) === norm(P.se) && (!o.edificio || !P.ed || norm(o.edificio) === norm(P.ed)); };
+const rutaDe = id => (cfg.rutas || []).find(r => r.id === id);
+const textoRuta = r => r ? `${r.a} ⇄ ${r.b}` : 'Ruta borrada';
+function rutaPara(o, d){
+  return (cfg.rutas || []).find(r => (mismoSitio(o, r.a) && mismoSitio(d, r.b)) || (mismoSitio(o, r.b) && mismoSitio(d, r.a)));
+}
+const DIAS = ['D','L','M','X','J','V','S'], NDIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+function diasRuta(txt){
+  const t = String(txt || '').toUpperCase().replace(/\s/g, ''); if(!t) return [1,2,3,4,5];
+  const set = new Set();
+  t.split(',').forEach(p => { const [a, b] = p.split('-'); const ia = DIAS.indexOf(a), ib = DIAS.indexOf(b ?? a); if(ia < 0 || ib < 0) return;
+    for(let i = ia; ; i = (i + 1) % 7){ set.add(i); if(i === ib) break; } });
+  return set.size ? [...set] : [1,2,3,4,5];
+}
+function proximaSalida(r, desde = Date.now()){
+  if(!r) return '';
+  const ds = diasRuta(r.dias), [hh, mm] = /^\d{1,2}:\d{2}$/.test(r.hora || '') ? r.hora.split(':').map(Number) : [null, null];
+  for(let i = 0; i < 8; i++){
+    const d = new Date(desde); d.setDate(d.getDate() + i);
+    if(!ds.includes(d.getDay())) continue;
+    if(hh !== null){ d.setHours(hh, mm, 0, 0); if(d.getTime() < desde) continue; }
+    const cuando = i === 0 ? 'hoy' : i === 1 ? 'mañana' : 'el ' + NDIAS[d.getDay()];
+    return cuando + (hh !== null ? ' a las ' + r.hora : '');
+  }
+  return '';
+}
+const esNacional = d => !d.pais || ['espana','es','spain'].includes(norm(d.pais));
+const transDe = n => (cfg.transportistas || []).find(t => norm(t.nombre) === norm(n));
+const urlSeguimiento = (trans, n) => { const t = transDe(trans); if(!t || !t.url) return ''; return t.url.includes('{n}') ? t.url.replace('{n}', encodeURIComponent(n || '')) : t.url; };
+const ESPECIAL = { peligrosa:'Mercancía peligrosa', fragil:'Frágil', volumen:'Gran volumen' };
+/* Devuelve { modo, ruta?, trans? } o { manual:'motivo' } */
+function reglas(e){
+  const esp = Object.keys(ESPECIAL).filter(k => (e.especial || []).includes(k));
+  if(esp.length) return { manual:'Lleva ' + esp.map(k => ESPECIAL[k].toLowerCase()).join(', ') };
+  if(!esExt(e)){
+    if(e.prioridad === 'urgente' && cfg.manualUrgInt) return { manual:'Es urgente' };
+    const r = rutaPara(e.origen, e.destino);
+    return r ? { modo:'valija', ruta:r.id } : { manual:'No hay ruta de valija entre ' + donde(e.origen) + ' y ' + donde(e.destino) };
+  }
+  const nac = esNacional(e.destino), kg = Number(e.peso) || 0;
+  const r = (cfg.reglas || []).find(x =>
+    (x.ambito === 'cualquiera' || (x.ambito === 'nacional') === nac) &&
+    (x.prio === 'cualquiera' || x.prio === e.prioridad) &&
+    (!Number(x.pesoMax) || !kg || kg <= Number(x.pesoMax)));
+  if(!r) return { manual:'Ninguna regla encaja (' + (nac ? 'nacional' : 'internacional') + (kg ? ', ' + kg + ' kg' : '') + ')' };
+  if(norm(r.trans) === 'manual') return { manual:'La regla dice que lo decida Logística' };
+  return { modo:'transportista', trans:r.trans };
+}
+/* Aplica las reglas a un envío nuevo o modificado (no toca lo que Logística asignó a mano) */
+function autoAsignar(e, ts){
+  if(e.asig && !e.asig.auto) return e;
+  const r = reglas(e);
+  if(r.manual){ e.asig = null; e.motivo = r.manual; e.estado = 'solicitado'; return e; }
+  e.asig = Object.assign({ auto:true, ts, por:'Reglas automáticas' }, r); e.motivo = '';
+  e.estado = 'asignado';
+  if(!e.historial.some(h => h.estado === 'asignado')) e.historial.push({ estado:'asignado', ts, por:'Reglas automáticas', lugar:textoAsig(e) });
+  return e;
+}
+function textoAsig(e){
+  const a = e.asig; if(!a) return 'Sin asignar';
+  if(a.modo === 'valija') return 'Valija ' + textoRuta(rutaDe(a.ruta));
+  if(a.modo === 'transportista') return a.trans;
+  return 'En mano' + (a.quien ? ' · ' + a.quien : '');
+}
+const iconAsig = a => !a ? 'clock' : a.modo === 'valija' ? 'bag' : a.modo === 'transportista' ? 'truck' : 'hand';
+const col = k => `var(--c-${k})`;
+
+/* ===== Almacenamiento: local o Firebase ===== */
+const Local = {
+  all(){ return LS.get('log_data', {}); },
+  put(e){ const a = this.all(); a[e.id] = e; LS.set('log_data', a); },
+  async nextId(){ const y = new Date().getFullYear(); const c = LS.get('log_cnt', {}); c[y] = (c[y] || 0) + 1; LS.set('log_cnt', c); return fmtId(y, c[y]); },
+  async save(e){ this.put(e); },
+  async get(id){ return this.all()[id] || null; },
+  async list(){ return Object.values(this.all()).sort((a,b) => b.creado - a.creado); },
+  async update(id, fn){ const e = await this.get(id); if(!e) throw new Error('El envío no existe'); const n = fn(e); this.put(n); return n; },
+  watch(ids, cb){ const run = () => { const a = this.all(); cb(ids.map(i => a[i]).filter(Boolean)); }; run();
+    const h = ev => { if(ev.key === 'log_data') run(); }; addEventListener('storage', h); return () => removeEventListener('storage', h); }
+};
+const Cloud = {
+  db:null,
+  async nextId(){
+    const y = new Date().getFullYear();
+    const ref = this.db.collection(C.contadores).doc('envios-' + y);
+    const n = await this.db.runTransaction(async t => { const s = await t.get(ref); const n = (s.exists ? s.data().n : 0) + 1; t.set(ref, {n}); return n; });
+    return fmtId(y, n);
+  },
+  async save(e){ await this.db.collection(C.envios).doc(e.id).set(e); },
+  async get(id){ const s = await this.db.collection(C.envios).doc(id).get(); return s.exists ? s.data() : null; },
+  async list(){ const q = await this.db.collection(C.envios).orderBy('creado','desc').limit(1000).get(); return q.docs.map(d => d.data()); },
+  async update(id, fn){
+    const ref = this.db.collection(C.envios).doc(id);
+    return this.db.runTransaction(async t => { const s = await t.get(ref); if(!s.exists) throw new Error('El envío no existe'); const n = fn(s.data()); t.set(ref, n); return n; });
+  },
+  watch(ids, cb){
+    if(!ids.length){ cb([]); return () => {}; }
+    const m = {}; const fire = () => { if(Object.keys(m).length === ids.length) cb(ids.map(i => m[i]).filter(Boolean)); };
+    const us = ids.map(id => this.db.collection(C.envios).doc(id).onSnapshot(s => { m[id] = s.exists ? s.data() : null; fire(); }, () => { m[id] = null; fire(); }));
+    return () => us.forEach(u => u());
+  }
+};
+let Store = Local, modoError = '';
+
+function parseFirebase(txt){
+  let s = txt.trim(); const a = s.indexOf('{'), b = s.lastIndexOf('}');
+  if(a < 0 || b < 0) throw new Error('No encuentro el objeto { ... } de configuración');
+  s = s.slice(a, b + 1).replace(/'/g, '"').replace(/([{,]\s*)([A-Za-z_]\w*)\s*:/g, '$1"$2":').replace(/,\s*}/g, '}');
+  const o = JSON.parse(s); if(!o.apiKey || !o.projectId) throw new Error('Faltan apiKey o projectId');
+  return o;
+}
+const loadScript = src => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => ko(new Error('No se pudo cargar ' + src)); document.head.appendChild(s); });
+let compartida = {};
+const COMPARTIDOS = ['empresa','sedes','edificios','puestos','rutas','reglas','transportistas','manualUrgInt'];
+function aplicarCompartida(){ COMPARTIDOS.forEach(k => { if(compartida[k] !== undefined && !(k in FIJO)) cfg[k] = compartida[k]; }); cfg.puestos = (cfg.puestos || []).map(fmtPuesto).filter(Boolean); }
+async function cargarCompartida(){
+  if(Store !== Cloud) return;
+  try{ const s = await Cloud.db.collection(C.config).doc('general').get(); if(s.exists){ compartida = s.data(); aplicarCompartida(); } }catch(_){}
+}
+async function guardarCompartida(){
+  if(Store !== Cloud) return;
+  const d = { actualizado:Date.now() }; COMPARTIDOS.forEach(k => d[k] = cfg[k]);
+  await Cloud.db.collection(C.config).doc('general').set(d); compartida = d;
+}
+async function initStore(){
+  if(!CONFIG_FIJA.firebase && !cfg.firebase.trim()) return;
+  try{
+    const conf = CONFIG_FIJA.firebase || parseFirebase(cfg.firebase);
+    if(!conf.apiKey || !conf.projectId) throw new Error('Faltan apiKey o projectId en la configuración');
+    await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+    await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
+    if(!firebase.apps.length) firebase.initializeApp(conf);
+    Cloud.db = firebase.firestore(); Store = Cloud;
+  }catch(e){ modoError = e.message; }
+}
+function pintaModo(){
+  const c = $('#conn');
+  if(modoError){ c.className = 'conn err'; c.textContent = 'Error de conexión'; c.title = modoError; }
+  else if(Store === Cloud){ c.className = 'conn cloud'; c.textContent = 'Conectado'; c.title = 'Los envíos se comparten entre todos los dispositivos'; }
+  else { c.className = 'conn local'; c.textContent = 'Solo este equipo'; c.title = 'Los envíos solo se guardan en este dispositivo. Conecta Firebase en Ajustes.'; }
+  const r = rol(), rc = $('#rol'), nom = (LS.get('log_rol', {}) || {}).nombre;
+  rc.innerHTML = hayPin() ? (r === 'admin' ? 'Admin' : r === 'almacen' ? esc(miPuesto()) + (nom ? `<small>${esc(nom)}</small>` : '') : '') : '';
+  document.body.classList.toggle('con-rol', !!rc.innerHTML);
+  rc.title = r === 'almacen' ? [nom, miPuesto()].filter(Boolean).join(' · ') : '';
+  $('#h-emp').textContent = cfg.empresa || 'Logística';
+  document.title = cfg.empresa && cfg.empresa !== 'Logística' ? cfg.empresa + ' · Logística' : 'Logística';
+  $('#page-style').textContent = cfg.etiqueta === 'A4' ? '@page{size:A4;margin:10mm}' : '@page{size:100mm 70mm;margin:0}';
+}
+
+/* ===== Navegación ===== */
+/* Roles: trabajador (crea y consulta) · almacén (con PIN y puesto) · administrador (todo) */
+/* Personas: con Firebase, cada persona de almacén/recepción tiene su nombre, sus puestos y su PIN personal.
+   El administrador las da de alta, les cambia el PIN o las borra; al hacerlo se les cierra la sesión al momento.
+   Mientras no haya ninguna persona dada de alta se sigue usando el PIN común de almacén. */
+let USERS = [], SEG = {};
+async function sha(t){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+const hashPin = (id, pin) => sha('logistica:' + id + ':' + pin);
+const usaPersonas = () => Store === Cloud && (!!SEG.modoPersonas || USERS.length > 0);
+const userDe = uid => USERS.find(u => u.id === uid);
+const hayPinAdmin = () => !!(SEG.adminHash || cfg.pinAdmin);
+const hayPin = () => hayPinAdmin() || usaPersonas() || !!cfg.pin || !!cfg.pinLog;
+const LOGI = 'Logística';
+const puestosTodos = () => [...(cfg.puestos || []), LOGI];
+const nuevoPin = () => String(Math.floor(100000 + Math.random() * 900000));
+function rol(){
+  if(!hayPin()) return 'admin';
+  const r = LS.get('log_rol', {}) || {};
+  if(r.rol === 'admin' && (SEG.adminHash ? r.h === SEG.adminHash : (cfg.pinAdmin && r.pin === cfg.pinAdmin))) return 'admin';
+  if(r.rol === 'almacen' && r.puesto){
+    if(usaPersonas()){ const u = userDe(r.uid); if(u && u.pinHash === r.h && (u.puestos || []).includes(r.puesto)) return 'almacen'; }
+    else { const pc = r.puesto === LOGI ? cfg.pinLog : cfg.pin; if(pc && r.pin === pc) return 'almacen'; }
+  }
+  return 'trabajador';
+}
+const claveRol = () => rol() + '|' + miPuesto();
+function cargarSeguridad(){
+  if(Store !== Cloud) return Promise.resolve();
+  return new Promise(ok => {
+    const listo = { u:false, s:false }; let hecho = false;
+    const fin = () => { if(!hecho){ hecho = true; ok(); } };
+    setTimeout(fin, 6000);
+    const tras = (k, aplicar) => {
+      const antes = hecho ? claveRol() : null;
+      aplicar(); listo[k] = true;
+      if(!hecho){ if(listo.u && listo.s) fin(); return; }
+      if(claveRol() !== antes){
+        const r0 = LS.get('log_rol', {}) || {};
+        if(rol() === 'trabajador' && r0.rol){ LS.set('log_rol', {}); alert('Tu sesión se ha cerrado: el administrador ha cambiado tu acceso. Vuelve a entrar desde Ajustes si hace falta.'); }
+        pintaModo(); route();
+      } else { pintaModo(); pintaPersonas(); }
+    };
+    Cloud.db.collection(C.usuarios).onSnapshot(
+      q => tras('u', () => { USERS = q.docs.map(d => Object.assign({ id:d.id }, d.data())).sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es')); }),
+      () => tras('u', () => {}));
+    Cloud.db.collection(C.config).doc('seguridad').onSnapshot(
+      s => tras('s', () => { SEG = s.exists ? s.data() : {}; }),
+      () => tras('s', () => {}));
+  });
+}
+function marcaAcceso(){
+  const r = LS.get('log_rol', {}) || {}, u = userDe(r.uid);
+  if(rol() !== 'almacen' || !u || Date.now() - (u.ultimoAcceso || 0) < 3600000) return;
+  Cloud.db.collection(C.usuarios).doc(u.id).set({ ultimoAcceso:Date.now() }, { merge:true }).catch(() => {});
+}
+/* Bloqueo tras varios PIN incorrectos en este aparato */
+function bloqueado(){ const f = LS.get('log_fallos', {}); if(f.hasta && f.hasta > Date.now()){ toast(`Demasiados intentos. Espera ${Math.ceil((f.hasta - Date.now()) / 1000)} s`); return true; } return false; }
+function fallo(){ const f = LS.get('log_fallos', {}); f.n = (f.n || 0) + 1; if(f.n >= 5){ f.hasta = Date.now() + 120000; f.n = 0; } LS.set('log_fallos', f); toast('PIN incorrecto'); }
+const acierto = () => LS.set('log_fallos', {});
+const esAlmacen = () => rol() !== 'trabajador';
+const esLogistica = () => rol() === 'admin' || (rol() === 'almacen' && miPuesto() === LOGI);
+const esAdmin = () => rol() === 'admin' || (rol() === 'almacen' && !hayPinAdmin());
+const miPuesto = () => (LS.get('log_rol', {}) || {}).puesto || '';
+const miNombre = () => rol() === 'almacen' ? ((LS.get('log_rol', {}) || {}).nombre || '') : '';
+const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const partes = p => String(p).split(/\s*[·,\/|\-–]\s*/).map(x => x.trim()).filter(Boolean);
+const fmtPuesto = p => partes(p).join(' · ');
+/* Un puesto es "Sede · Edificio" (almacén) o "Sede · Edificio · Recepción" */
+function parsePuesto(p){
+  const t = partes(p); let pu = '';
+  if(t.length > 1 && norm(t[t.length - 1]) === 'recepcion'){ t.pop(); pu = 'Recepción'; }
+  return { se:t[0] || '', ed:t[1] || '', pu };
+}
+const textoPuesto = (se, ed, pu) => [se, ed, pu].filter(Boolean).join(' · ');
+function enPuesto(o, puesto){
+  if(!puesto || !o) return false;
+  const P = parsePuesto(puesto);
+  if(norm(o.sede) !== norm(P.se)) return false;
+  if(norm(o.punto) !== norm(P.pu)) return false;          // almacén y recepción son puestos distintos
+  return !o.edificio || !P.ed || norm(o.edificio) === norm(P.ed);
+}
+/* Personas dadas de alta en el puesto que hace el paso: origen para la salida, destino para recibir y entregar */
+function personasPaso(e, nx){
+  if(!usaPersonas()) return [];
+  const o = nx === 'transito' ? e.origen : e.destino;
+  const ps = rol() === 'almacen' ? [miPuesto()] : (cfg.puestos || []).filter(p => enPuesto(o, p));
+  return [...new Set(USERS.filter(u => (u.puestos || []).some(p => ps.includes(p))).map(u => u.nombre))].sort((a, b) => a.localeCompare(b, 'es'));
+}
+function campoPor(e, nx){
+  const l = personasPaso(e, nx), yo = nx !== 'transito' ? miNombre() : '';
+  const inp = (val, oculto, list) => `<input id="a-por" value="${esc(val)}" placeholder="Nombre y apellido" autocomplete="off"${list ? ' list="a-por-l"' : ''}${oculto ? ' hidden style="margin-top:8px"' : ''}>`;
+  if(nx === 'transito' || !l.length) return inp(yo, false, l.length) + (l.length ? `<datalist id="a-por-l">${l.map(n => `<option value="${esc(n)}">`).join('')}</datalist>` : '');
+  return `<select id="a-por-sel">${yo && l.includes(yo) ? '' : '<option value="">Elige quién…</option>'}${l.map(n => `<option ${n === yo ? 'selected' : ''}>${esc(n)}</option>`).join('')}<option value="__otro">Otra persona…</option></select>` + inp('', true);
+}
+function puedePaso(e, nx){
+  const r = rol(); if(r === 'admin') return true; if(r !== 'almacen') return false;
+  if(nx === 'transito') return enPuesto(e.origen, miPuesto());
+  if(esExt(e)) return esLogistica() || enPuesto(e.origen, miPuesto());   // la entrega fuera la confirma Logística o el almacén que lo expidió
+  return enPuesto(e.destino, miPuesto());
+}
+const misIds = () => LS.get('log_mis', []);
+const sigo = id => misIds().includes(id);
+const seguir = id => { const m = misIds(); if(!m.includes(id)){ m.unshift(id); LS.set('log_mis', m.slice(0, 300)); } };
+const dejar = id => LS.set('log_mis', misIds().filter(x => x !== id));
+const creados = () => LS.get('log_creados', []);
+const antesDeSalir = e => e.estado === 'solicitado' || e.estado === 'asignado';
+const puedeEditar = e => e.estado !== 'entregado' && (rol() === 'admin' || (antesDeSalir(e) && esLogistica()) || (rol() === 'almacen' && (enPuesto(e.origen, miPuesto()) || (!esExt(e) && enPuesto(e.destino, miPuesto())))) || (antesDeSalir(e) && creados().includes(e.id)));
+let unsubs = [];
+const limpiar = () => { unsubs.forEach(u => { try{ u(); }catch(_){} }); unsubs = []; };
+function pintaNav(v){
+  const alm = esAlmacen();
+  const NAV = [['inicio','home','Inicio'], alm ? ['envios','list','Envíos'] : ['mis','star','Mis envíos'], ['escanear','scan', alm ? 'Escanear' : 'Consultar'], ...(alm ? [['valija','bag','Valija']] : []), ['nuevo','plus','Nuevo'], ['ajustes','cog','Ajustes']];
+  $('#nav').style.setProperty('--n', NAV.length);
+  $('#nav').innerHTML = NAV.map(([k,ic,l]) => k === 'escanear'
+    ? `<a href="#/${k}" class="fab ${v === k ? 'on' : ''}"><span class="b">${icon(ic)}</span><em>${l}</em></a>`
+    : `<a href="#/${k}" class="${v === k ? 'on' : ''}">${icon(ic)}<span>${l}</span></a>`).join('');
+}
+function route(){
+  const q = new URLSearchParams(location.search).get('envio');
+  let h = location.hash.replace(/^#\/?/, '');
+  if(q){ history.replaceState(null, '', location.pathname + '#/envio/' + encodeURIComponent(q)); h = 'envio/' + encodeURIComponent(q); }
+  let [view, arg, extra] = h.split('/');
+  const alm = esAlmacen();
+  if(view === 'panel') view = 'envios';
+  if(view === 'envios' && !alm) view = 'mis';
+  stopScanner(); limpiar();
+  pintaNav(view === 'envio' || view === 'editar' ? (alm ? 'envios' : 'mis') : (view || 'inicio'));
+  window.scrollTo(0, 0);
+  if(view === 'nuevo') vNuevo();
+  else if(view === 'envio' && arg) vFicha(decodeURIComponent(arg), extra === 'nuevo');
+  else if(view === 'editar' && arg) vEditar(decodeURIComponent(arg));
+  else if(view === 'escanear') vScan();
+  else if(view === 'ajustes') vAjustes();
+  else if(view === 'envios') vLista();
+  else if(view === 'valija' && alm) vValija();
+  else if(view === 'mis') vMis();
+  else vInicio();
+}
+window.addEventListener('hashchange', route);
+/* Pistola lectora: escribe el código muy rápido y termina con Enter. Funciona en cualquier pantalla. */
+let kb = '', kbT = 0;
+document.addEventListener('keydown', ev => {
+  const t = ev.target;
+  if(t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+  const now = Date.now(); if(now - kbT > 100) kb = ''; kbT = now;
+  if(ev.key === 'Enter'){ const id = kb.length >= 10 ? idDesde(kb) : null; kb = ''; if(id){ ev.preventDefault(); stopScanner(); abrirEnvio(id); } return; }
+  if(ev.key.length === 1) kb += ev.key;
+});
+
+/* ===== Componentes ===== */
+const ultimo = (e, est) => e.historial.filter(h => h.estado === est).pop() || {};
+function frase(e){
+  const u = ultimo(e, e.estado);
+  switch(e.estado){
+    case 'solicitado': return `Esperando a que Logística decida cómo se envía`;
+    case 'asignado': return e.asig.modo === 'valija' ? `Va en la valija${proximaSalida(rutaDe(e.asig.ruta)) ? ', próxima salida ' + proximaSalida(rutaDe(e.asig.ruta)) : ''}. Pendiente de salir de ${donde(e.origen)}`
+      : e.asig.modo === 'transportista' ? `Se enviará con ${e.asig.trans}. Pendiente de preparar en ${donde(e.origen)}` : `Pendiente de salir de ${donde(e.origen)}`;
+    case 'transito': return esExt(e) ? `Expedido con ${e.asig.trans} a las ${hora(u.ts)}${u.seguimiento ? ' · nº ' + u.seguimiento : ''}` : `${e.asig && e.asig.modo === 'valija' ? 'En la valija' : 'En tránsito'} desde ${donde(e.origen)}, salió a las ${hora(u.ts)}`;
+    case 'recibido': return `Ha llegado a ${u.lugar || donde(e.destino)} a las ${hora(u.ts)}. Falta entregarlo a ${e.destino.persona}`;
+    case 'entregado': return esExt(e) ? `Entregado a ${u.receptor || e.destino.empresa || e.destino.persona} el ${fmt(u.ts)}` : `Entregado a ${u.receptor || e.destino.persona} el ${fmt(u.ts)}`;
+  }
+}
+function stepper(e){
+  const O = ordenDe(e), idx = O.indexOf(e.estado);
+  return `<ol class="stepper" style="--c:${col(e.estado)};--n:${O.length}">${O.map((k,i) => {
+    const h = ultimo(e, k), cls = i <= idx ? 'done' : i === idx + 1 ? 'next' : '';
+    return `<li class="${cls}"><span class="dot">${i <= idx ? icon('check') : icon(ESTADOS[k].icon)}</span><b>${pasoTxt(e, k)}</b><small>${h.ts ? corto(h.ts) : i === idx + 1 ? 'Siguiente' : ''}</small></li>`;
+  }).join('')}</ol>`;
+}
+const mini = e => { const O = ordenDe(e), idx = O.indexOf(e.estado); return `<div class="mini" style="--c:${col(e.estado)};--n:${O.length}">${O.map((k,i) => `<span class="${i <= idx ? 'on' : ''}"></span>`).join('')}</div>`; };
+const badge = e => `<span class="badge" style="--c:${col(e.estado)}">${labelDe(e)}</span>`;
+const urgB = e => e.prioridad === 'urgente' ? '<span class="badge urg">Urgente</span>' : '';
+const tagAsig = e => e.asig ? `<span class="tag">${icon(iconAsig(e.asig))}${esc(e.asig.modo === 'valija' ? 'Valija' : e.asig.modo === 'transportista' ? e.asig.trans : 'En mano')}</span>` : '';
+const itemHTML = e => `<a class="item ${e.prioridad === 'urgente' && e.estado !== 'entregado' ? 'urg' : ''}" href="#/envio/${encodeURIComponent(e.id)}">
+    <div class="r1"><span class="idm">${esc(e.id)}</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${tagAsig(e)}${urgB(e)}${badge(e)}</span></div>
+    <div class="r2">${esc(donde(e.origen))} ${icon('arrow')} ${esExt(e) ? icon('globe') : ''}${esc(donde(e.destino))}</div>
+    <div class="r3">Para ${esc(e.destino.persona || e.destino.empresa)} · ${esc(e.tipo)} · ${corto(e.actualizado || e.creado)}</div>
+    ${mini(e)}</a>`;
+
+/* ===== Vista: inicio ===== */
+let filtro = { estado:'activos', q:'', desde:'', hasta:'' }, filtroPend = false;
+const porActividad = (a,b) => (a.estado === 'entregado') - (b.estado === 'entregado') || (b.actualizado || b.creado) - (a.actualizado || a.creado);
+async function vInicio(){
+  limpiar();
+  const alm = esAlmacen();
+  const hola = cfg.usuario ? `Hola, ${esc(cfg.usuario.split(' ')[0])}` : 'Logística';
+  const pasos = alm
+    ? [['package','1. Solicitar','Sin elegir transporte',col('solicitado')],['route','2. Asignar','Reglas o Logística',col('asignado')],['truck','3. Salida','Valija o transportista',col('transito')],['building','4. Recibir','Almacén de destino',col('recibido')],['userCheck','5. Entregar','Escanea y firma',col('entregado')]]
+    : [['package','1. Pide el envío','Dentro o fuera de la empresa',col('solicitado')],['route','2. Logística decide','Valija o transportista',col('asignado')],['star','3. Síguelo aquí','Sin preguntar a nadie',col('entregado')]];
+  $('#app').innerHTML = `
+    <div class="h1">${hola}</div><p class="sub">¿Qué quieres hacer?</p>
+    <form class="search" id="fbus" style="margin-bottom:14px">${icon('search')}<input id="bus" type="search" enterkeyhint="search" autocomplete="off" placeholder="${alm ? 'Buscar por código o nombre…' : 'Buscar por código (ej. 15)…'}"></form>
+    <div class="acts">
+      <a class="act a1" href="#/nuevo"><span class="ic">${icon('plus')}</span><div><b>Nuevo envío</b><small>${alm ? 'Solicitar e imprimir etiqueta' : 'Te damos un código de seguimiento'}</small></div></a>
+      <a class="act a2" href="#/escanear"><span class="ic">${icon(alm ? 'scan' : 'search')}</span><div><b>${alm ? 'Escanear' : 'Consultar'}</b><small>${alm ? 'Actualizar un paquete' : 'Escanea o escribe el código'}</small></div></a>
+    </div>
+    ${alm ? '<div id="stats" class="stats"></div>' : ''}
+    <div class="card"><div class="card-t">Cómo funciona</div>
+      <div class="how" style="grid-template-columns:repeat(${pasos.length},1fr)">
+        ${pasos.map(([ic,t,d,c]) => `<div><span class="d" style="background:${c}">${icon(ic)}</span><b>${t}</b>${d}</div>`).join('')}
+      </div>
+    </div>
+    <div class="card-t" style="margin:22px 0 10px">${alm ? 'Envíos en curso' : 'Mis envíos en curso'} <a href="#/${alm ? 'envios' : 'mis'}" style="margin-left:auto;font-size:14px;text-decoration:none">Ver todos</a></div>
+    <div id="rec"><div class="empty">Cargando…</div></div>`;
+  $('#fbus').onsubmit = ev => {
+    ev.preventDefault(); const v = $('#bus').value.trim(); if(!v) return;
+    const id = idDesde(v) || (/^\d{1,6}$/.test(v) ? fmtId(new Date().getFullYear(), +v) : null);
+    if(id) abrirEnvio(id);
+    else if(alm){ filtro = { estado:'activos', q:v, desde:'', hasta:'' }; filtroPend = true; location.hash = '#/envios'; }
+    else toast('Escribe el código del envío, por ejemplo LOG-2026-000015 o solo 15');
+  };
+  if(!alm){
+    const ids = misIds();
+    if(!ids.length){ $('#rec').innerHTML = `<div class="empty"><div class="ic">${icon('package')}</div>Aún no tienes envíos.<br>Crea uno o consulta un código.</div>`; return; }
+    unsubs.push(Store.watch(ids, l => {
+      const act = l.filter(e => e.estado !== 'entregado').sort(porActividad).slice(0, 5);
+      $('#rec').innerHTML = act.length ? act.map(itemHTML).join('') : `<div class="empty"><div class="ic">${icon('check')}</div>Todos tus envíos están entregados.</div>`;
+    }));
+    return;
+  }
+  let todos; try{ todos = await Store.list(); }catch(err){ $('#rec').innerHTML = `<div class="card">Error al cargar: ${esc(err.message)}</div>`; return; }
+  const n = k => todos.filter(e => e.estado === k).length;
+  const urg = todos.filter(e => e.prioridad === 'urgente' && e.estado !== 'entregado').length;
+  $('#stats').innerHTML = [['solicitado','Por asignar',n('solicitado'),col('solicitado')],['asignado','Por preparar',n('asignado'),col('asignado')],['transito','En tránsito',n('transito'),col('transito')],['recibido','En destino',n('recibido'),col('recibido')],['entregado','Entregados',n('entregado'),col('entregado')],['urgentes','Urgentes',urg,'var(--urg)']]
+    .map(([k,l,v,c]) => `<button class="stat" data-k="${k}" style="--c:${c}"><b>${v}</b><span>${l}</span></button>`).join('');
+  document.querySelectorAll('.stat').forEach(b => b.onclick = () => { filtro = { estado:b.dataset.k, q:'', desde:'', hasta:'' }; filtroPend = true; location.hash = '#/envios'; });
+  const pend = esLogistica() ? todos.filter(e => e.estado === 'solicitado') : [];
+  const act = pend.length ? pend.slice(0, 8) : todos.filter(e => e.estado !== 'entregado').slice(0, 5);
+  if(pend.length) $('#rec').previousElementSibling.firstChild.textContent = `Por asignar transporte (${pend.length}) `;
+  $('#rec').innerHTML = act.length ? act.map(itemHTML).join('')
+    : `<div class="empty"><div class="ic">${icon('package')}</div>No hay envíos en curso.</div>`;
+}
+
+/* ===== Vista: mis envíos ===== */
+function vMis(){
+  limpiar();
+  $('#app').innerHTML = `<div style="display:flex;align-items:center;gap:10px"><div class="h1" style="flex:1">Mis envíos</div>${Store === Cloud ? '<span class="live">En directo</span>' : ''}</div>
+    <p class="sub">Solo tus envíos: los que has pedido tú y los que sigues. El estado se actualiza solo, sin preguntar a nadie.</p>
+    <div id="lista"><div class="empty">Cargando…</div></div><div class="btns" id="mis-acc" style="margin-top:6px"></div>`;
+  const ids = misIds();
+  if(!ids.length){ $('#lista').innerHTML = `<div class="empty"><div class="ic">${icon('star')}</div>Aún no tienes envíos aquí.<br>Los que pidas aparecerán solos.<br>Si alguien te envía algo, abre su código o QR y pulsa «Seguir este envío».<br><br><div class="btns" style="justify-content:center"><a class="btn" href="#/nuevo">${icon('plus')} Nuevo envío</a><a class="btn sec" href="#/escanear">${icon('search')} Consultar código</a></div></div>`; return; }
+  unsubs.push(Store.watch(ids, l => {
+    l.sort(porActividad);
+    $('#lista').innerHTML = l.length ? l.map(itemHTML).join('') : `<div class="empty">No se encuentran tus envíos${Store === Local ? ' en este dispositivo' : ''}.</div>`;
+    const ent = l.filter(e => e.estado === 'entregado');
+    $('#mis-acc').innerHTML = ent.length ? `<button class="btn ghost" id="qe">Quitar los entregados (${ent.length})</button>` : '';
+    if(ent.length) $('#qe').onclick = () => { ent.forEach(e => dejar(e.id)); vMis(); };
+  }));
+}
+
+/* ===== Vista: nuevo envío ===== */
+async function vEditar(id){
+  limpiar();
+  $('#app').innerHTML = '<div class="empty">Cargando…</div>';
+  let e; try{ e = await Store.get(id); }catch(err){ $('#app').innerHTML = `<div class="card">Error: ${esc(err.message)}</div>`; return; }
+  if(!e){ $('#app').innerHTML = `<div class="empty">No existe el envío ${esc(id)}.</div>`; return; }
+  if(!puedeEditar(e)){ $('#app').innerHTML = `<div class="empty"><div class="ic">${icon('lock')}</div>Este envío ya no se puede modificar${e.estado === 'entregado' ? ' porque está entregado' : '. Una vez recogido, solo el almacén puede cambiarlo'}.<br><br><a class="btn sec" href="#/envio/${encodeURIComponent(e.id)}">Volver al envío</a></div>`; return; }
+  vNuevo(e);
+}
+function vNuevo(ed = null){
+  const last = ed ? ed.origen : LS.get('log_last_origen', {});
+  const ds = ed ? ed.destino : {};
+  const ext = !!ds.externo;
+  const now = new Date(ed ? ed.fecha : Date.now()); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  const dl = `<datalist id="edifs">${cfg.edificios.map(e => `<option value="${esc(e)}">`).join('')}</datalist><datalist id="sedes">${(cfg.sedes || []).map(e => `<option value="${esc(e)}">`).join('')}</datalist>`;
+  const tipos = ['Documentos','Material','Muestras','Herramienta','Repuesto','Otro'];
+  const v = (k, d = '') => esc(ext ? (ds[k] ?? d) : d);
+  $('#app').innerHTML = `${dl}
+  ${ed ? `<a class="back" href="#/envio/${encodeURIComponent(ed.id)}">${icon('back')} ${esc(ed.id)}</a>` : ''}
+  <div class="h1">${ed ? 'Modificar envío' : 'Nuevo envío'}</div><p class="sub">${ed ? 'Cambia lo que necesites y guarda. Después vuelve a imprimir la etiqueta.' : 'Rellena los 3 apartados. No hace falta elegir transporte: lo decide Logística.'}</p>
+  <form id="f" autocomplete="off">
+    <div class="card"><div class="card-t"><span class="num">1</span>¿Desde dónde sale?</div>
+      ${chipsPuesto('o')}
+      <div class="f">
+        <div><label class="l">Sede</label><input name="o_se" list="sedes" required value="${esc(last.sede)}" placeholder="Zamudio"><input type="hidden" name="o_pu" value="${esc(last.punto || '')}"></div>
+        <div><label class="l">Edificio</label><input name="o_ed" list="edifs" value="${esc(last.edificio)}" placeholder="106"></div>
+        <div class="s2"><label class="l">Planta <i>(opcional)</i></label><input name="o_pl" value="${esc(last.planta)}"></div>
+        <div class="s4"><label class="l">Quién lo envía</label><input name="o_pe" required value="${esc(last.persona || (ed ? '' : cfg.usuario))}" placeholder="Nombre y apellido"></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-t"><span class="num">2</span>¿Para quién es?</div>
+      <div class="seg">
+        <label><input type="radio" name="ambito" value="int" ${ext ? '' : 'checked'}><span>${icon('building')}Dentro de la empresa<small>Otro edificio o sede</small></span></label>
+        <label><input type="radio" name="ambito" value="ext" ${ext ? 'checked' : ''}><span>${icon('globe')}Fuera de la empresa<small>Cliente, proveedor…</small></span></label>
+      </div>
+      <div id="d-int" ${ext ? 'hidden' : ''}>
+        ${chipsPuesto('d')}
+        <div class="f">
+          <div><label class="l">Sede</label><input name="d_se" list="sedes" value="${esc(ext ? '' : ds.sede)}" placeholder="Ortuella"><input type="hidden" name="d_pu" value="${esc(ext ? '' : ds.punto || '')}"></div>
+          <div><label class="l">Edificio</label><input name="d_ed" list="edifs" value="${esc(ext ? '' : ds.edificio)}" placeholder="Ballonti"></div>
+          <div class="s2"><label class="l">Planta <i>(opcional)</i></label><input name="d_pl" value="${esc(ext ? '' : ds.planta)}"></div>
+          <div class="s4"><label class="l">Quién lo recibe</label><input name="d_pe" value="${esc(ext ? '' : ds.persona)}" placeholder="Nombre y apellido"></div>
+        </div>
+      </div>
+      <div id="d-ext" ${ext ? '' : 'hidden'}>
+        <div class="f">
+          <div class="s2"><label class="l">Empresa</label><input name="x_emp" value="${v('empresa')}" placeholder="Nombre de la empresa"></div>
+          <div class="s2"><label class="l">Persona de contacto</label><input name="x_pe" value="${v('persona')}" placeholder="Nombre y apellido"></div>
+          <div class="s4"><label class="l">Dirección</label><input name="x_dir" value="${v('direccion')}" placeholder="Calle, número, polígono…"></div>
+          <div><label class="l">C.P.</label><input name="x_cp" value="${v('cp')}" inputmode="numeric"></div>
+          <div><label class="l">Población</label><input name="x_pob" value="${v('poblacion')}"></div>
+          <div><label class="l">Provincia</label><input name="x_prov" value="${v('provincia')}"></div>
+          <div><label class="l">País</label><input name="x_pais" value="${v('pais', 'España')}"></div>
+          <div class="s2"><label class="l">Teléfono</label><input name="x_tel" value="${v('telefono')}" inputmode="tel"></div>
+          <div class="s2"><label class="l">Email <i>(opcional)</i></label><input name="x_mail" value="${v('email')}" inputmode="email"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card"><div class="card-t"><span class="num">3</span>¿Qué envías?</div>
+      <label class="l">Tipo</label>
+      <div class="pills" style="margin-bottom:16px">${tipos.map((t,i) => `<label class="pill"><input type="radio" name="tipo" value="${t}" ${(ed ? ed.tipo === t : i === 0) ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div>
+      <div class="f" style="margin-bottom:16px">
+        <div class="s4"><label class="l">Descripción <i>(opcional)</i></label><input name="desc" value="${esc(ed ? ed.descripcion : '')}" placeholder="Ej.: contratos firmados, 2 tarjetas…"></div>
+        <div class="s2"><label class="l">Bultos</label><div class="stepperN"><button type="button" data-d="-1">−</button><input name="bultos" type="number" min="1" value="${ed ? ed.bultos : 1}" inputmode="numeric"><button type="button" data-d="1">+</button></div></div>
+        <div class="s2"><label class="l">Peso aproximado <i>(kg, opcional)</i></label><input name="peso" type="number" min="0" step="0.1" inputmode="decimal" value="${esc(ed && ed.peso ? ed.peso : '')}" placeholder="Ej.: 2,5"></div>
+      </div>
+      <label class="l">Prioridad</label>
+      <div class="prio" style="margin-bottom:14px">
+        <label><input type="radio" name="prio" value="normal" ${ed && ed.prioridad === 'urgente' ? '' : 'checked'}><span>${icon('clock')} Normal</span></label>
+        <label><input type="radio" name="prio" value="urgente" ${ed && ed.prioridad === 'urgente' ? 'checked' : ''}><span>${icon('flame')} Urgente</span></label>
+      </div>
+      <label class="l">¿Lleva algo especial? <i>(si marcas algo, lo revisa Logística)</i></label>
+      <div class="checks" style="margin-bottom:12px">${Object.entries(ESPECIAL).map(([k, t]) => `<label><input type="checkbox" name="esp" value="${k}" ${ed && (ed.especial || []).includes(k) ? 'checked' : ''}> ${t}</label>`).join('')}</div>
+      <details class="more"><summary>Cambiar fecha y hora</summary><div style="margin-top:10px"><input name="fecha" type="datetime-local" value="${now.toISOString().slice(0,16)}"></div></details>
+    </div>
+    <div class="sticky-go"><button class="btn big" id="go">${ed ? icon('check') + ' Guardar cambios' : icon('printer') + ' Solicitar envío'}</button></div>
+  </form>`;
+  const F = $('#f');
+  const ambito = () => F.ambito.value;
+  const pintaAmbito = () => {
+    const x = ambito() === 'ext';
+    $('#d-int').hidden = x; $('#d-ext').hidden = !x;
+    F.d_se.required = F.d_pe.required = !x;
+    ['x_emp','x_dir','x_cp','x_pob','x_pais'].forEach(n => F[n].required = x);
+  };
+  F.querySelectorAll('input[name=ambito]').forEach(r => r.onchange = pintaAmbito); pintaAmbito();
+  document.querySelectorAll('.pq').forEach(c => c.onclick = () => {
+    const P = parsePuesto(c.dataset.p), k = c.dataset.k;
+    F[k + '_se'].value = P.se; F[k + '_ed'].value = P.ed; F[k + '_pu'].value = P.pu; marcaPuestos();
+  });
+  const marcaPuestos = () => ['o','d'].forEach(k => document.querySelectorAll(`.pq[data-k="${k}"]`).forEach(c => {
+    const P = parsePuesto(c.dataset.p); c.classList.toggle('on', norm(F[k + '_se'].value) === norm(P.se) && norm(F[k + '_ed'].value) === norm(P.ed) && norm(F[k + '_pu'].value) === norm(P.pu)); }));
+  ['o_se','o_ed','d_se','d_ed'].forEach(n => F[n].addEventListener('input', () => { F[n[0] + '_pu'].value = ''; marcaPuestos(); })); marcaPuestos();
+  document.querySelectorAll('.stepperN button').forEach(b => b.onclick = () => { const i = b.parentNode.querySelector('input'); i.value = Math.max(1, (Number(i.value) || 1) + Number(b.dataset.d)); });
+  const leer = f => {
+    const origen = { sede:f.o_se.trim(), edificio:f.o_ed.trim(), punto:f.o_pu || '', planta:f.o_pl.trim(), persona:f.o_pe.trim() };
+    const destino = ambito() === 'ext'
+      ? { externo:true, empresa:f.x_emp.trim(), persona:f.x_pe.trim(), direccion:f.x_dir.trim(), cp:f.x_cp.trim(), poblacion:f.x_pob.trim(), provincia:f.x_prov.trim(), pais:f.x_pais.trim() || 'España', telefono:f.x_tel.trim(), email:f.x_mail.trim() }
+      : { sede:f.d_se.trim(), edificio:f.d_ed.trim(), punto:f.d_pu || '', planta:f.d_pl.trim(), persona:f.d_pe.trim() };
+    return { origen, destino, tipo:f.tipo, descripcion:f.desc.trim(), bultos:Number(f.bultos) || 1, peso:Number(String(f.peso).replace(',', '.')) || 0,
+      prioridad:f.prio, especial:[...F.querySelectorAll('input[name=esp]:checked')].map(c => c.value) };
+  };
+  F.onsubmit = async ev => {
+    ev.preventDefault(); const b = $('#go'); b.disabled = true; b.textContent = ed ? 'Guardando…' : 'Enviando…';
+    const f = Object.fromEntries(new FormData(ev.target)), d = leer(f);
+    if(ed){
+      try{
+        const ts = Date.now();
+        await Store.update(ed.id, cur => {
+          if(cur.estado === 'entregado') throw new Error('El envío ya está entregado');
+          const cambiaDestino = !!cur.destino.externo !== !!d.destino.externo;
+          if(!antesDeSalir(cur) && cambiaDestino) throw new Error('Ya ha salido: no se puede cambiar de dentro a fuera de la empresa');
+          Object.assign(cur, d); cur.fecha = f.fecha ? new Date(f.fecha).getTime() : cur.fecha;
+          cur.modificado = ts; cur.actualizado = ts;
+          return antesDeSalir(cur) ? autoAsignar(cur, ts) : cur;
+        });
+        toast('Cambios guardados. Vuelve a imprimir la etiqueta.');
+        location.hash = '#/envio/' + encodeURIComponent(ed.id);
+      }catch(err){ alert('No se pudo guardar: ' + err.message); b.disabled = false; b.innerHTML = icon('check') + ' Guardar cambios'; }
+      return;
+    }
+    try{
+      const id = await Store.nextId(); const ts = Date.now();
+      const e = Object.assign({ id, estado:'solicitado', creado:ts, actualizado:ts, fecha: f.fecha ? new Date(f.fecha).getTime() : ts, asig:null, motivo:'' }, d);
+      e.historial = [{ estado:'solicitado', ts, por:d.origen.persona, lugar:[d.origen.sede, d.origen.edificio, d.origen.punto].filter(Boolean).join(' · ') }];
+      autoAsignar(e, ts);
+      await Store.save(e);
+      seguir(id); LS.set('log_creados', [id, ...creados()].slice(0, 300));
+      LS.set('log_last_origen', e.origen);
+      location.hash = '#/envio/' + encodeURIComponent(id) + '/nuevo';
+    }catch(err){ alert('No se pudo crear el envío: ' + err.message); b.disabled = false; b.innerHTML = icon('printer') + ' Solicitar envío'; }
+  };
+}
+
+const chipsPuesto = k => (cfg.puestos || []).length ? `<div style="margin:-4px 0 12px"><label class="l">Almacén o recepción <i>(pulsa uno o escríbelo abajo)</i></label><div class="pills">${cfg.puestos.map(p => `<button type="button" class="chip pq" data-k="${k}" data-p="${esc(p)}">${esc(p)}</button>`).join('')}</div></div>` : '';
+
+/* ===== Etiqueta ===== */
+function barSvg(text){
+  if(!window.JsBarcode) return '';
+  try{
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    JsBarcode(svg, text, { format:'CODE128', displayValue:false, margin:0, width:2, height:60, background:'#ffffff' });
+    const w = svg.getAttribute('width'), h = svg.getAttribute('height');
+    svg.setAttribute('viewBox', `0 0 ${parseFloat(w)} ${parseFloat(h)}`); svg.removeAttribute('width'); svg.removeAttribute('height'); svg.removeAttribute('style');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    return svg.outerHTML;
+  }catch(_){ return ''; }
+}
+const codBarras = id => id.replace(/-/g, '');   // ENV2026000001: sin guiones, para que cualquier pistola lo escriba bien
+function qrSvg(text){ const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({cellSize:4, margin:12, scalable:true}); }
+function etiquetaHTML(e, n = 1){
+  const bar = barSvg(codBarras(e.id));
+  return `<div class="etq"><div class="etq-top">
+    <div class="etq-qr">${qrSvg(urlEnvio(e.id))}${e.bultos > 1
+      ? `<div class="etq-bul"><small>BULTO</small><b>${n}<i> / ${e.bultos}</i></b></div>`
+      : '<div class="cap">Escanea con el móvil<br>para ver el estado</div>'}</div>
+    <div class="etq-info">
+      <div class="etq-emp">${esc(cfg.empresa)} · ${esExt(e) ? 'Envío externo' : 'Envío interno'}</div>
+      <div class="etq-idr"><span class="etq-id">${esc(e.id)}</span></div>
+      ${e.prioridad === 'urgente' ? '<div class="etq-urg">URGENTE</div>' : ''}
+      <div class="etq-modo">${e.asig ? esc(e.asig.modo === 'valija' ? 'VALIJA' : e.asig.modo === 'transportista' ? e.asig.trans.toUpperCase() : 'EN MANO') : 'TRANSPORTE: LO ASIGNA LOGÍSTICA'}</div>
+      <div class="etq-l">PARA</div>
+      <div class="etq-dest">${esExt(e) ? `${esc(e.destino.empresa)}${e.destino.persona ? ' · ' + esc(e.destino.persona) : ''}<br><span style="font-size:8.5pt;font-weight:400">${esc(dirExt(e.destino))}</span>` : `${esc(e.destino.persona)}<br>${esc(lugar(e.destino))}`}</div>
+      <div class="etq-l">DE</div>
+      <div>${esc(e.origen.persona)} · ${esc(lugar(e.origen))}</div>
+      <div class="etq-desc">${esc(e.tipo)}${e.descripcion ? ' – ' + esc(e.descripcion) : ''} · ${e.bultos} bulto${e.bultos > 1 ? 's' : ''} · ${fmt(e.fecha)}</div>
+    </div></div>
+    ${bar ? `<div class="etq-bar">${bar}<span>${esc(codBarras(e.id))}</span></div>` : ''}</div>`;
+}
+function imprimirHoja(r, lista, chofer){
+  const p = $('#etiqueta-print'); p.className = 'a4';
+  $('#page-style').textContent = '@page{size:A4;margin:12mm}';
+  p.innerHTML = `<div class="hoja"><h1>Hoja de valija · ${esc(textoRuta(r))}</h1>
+    <p>${esc(cfg.empresa)} · ${fmt(Date.now())}${chofer ? ' · Lleva: ' + esc(chofer) : ''} · ${lista.length} envío${lista.length === 1 ? '' : 's'}, ${lista.reduce((n, e) => n + (e.bultos || 1), 0)} bultos</p>
+    <table><thead><tr><th>Código</th><th>De</th><th>Para</th><th>Contenido</th><th>Bultos</th><th>Recibido ✓</th></tr></thead><tbody>
+    ${lista.map(e => `<tr><td><b>${esc(e.id)}</b>${e.prioridad === 'urgente' ? '<br>URGENTE' : ''}</td><td>${esc(donde(e.origen))}<br>${esc(e.origen.persona)}</td><td>${esc(donde(e.destino))}<br>${esc(e.destino.persona)}</td><td>${esc(e.tipo)}${e.descripcion ? ' – ' + esc(e.descripcion) : ''}</td><td>${e.bultos}</td><td></td></tr>`).join('')}
+    </tbody></table>
+    <div class="firmas"><div>Entrega (almacén de origen)</div><div>Transporta</div><div>Recibe (almacén de destino)</div></div></div>`;
+  setTimeout(() => { window.print(); setTimeout(pintaModo, 500); }, 150);
+}
+function imprimir(e){
+  pintaModo();
+  const p = $('#etiqueta-print'); p.className = cfg.etiqueta === 'A4' ? 'a4' : '';
+  p.innerHTML = Array.from({ length: Math.max(1, e.bultos || 1) }, (_, i) => etiquetaHTML(e, i + 1)).join('');
+  setTimeout(() => window.print(), 150);
+}
+
+/* ===== Vista: ficha del envío ===== */
+function mailAviso(e){
+  const u = ultimo(e, 'recibido');
+  const s = `Envío ${e.id} recibido en ${u.lugar || donde(e.destino)}`;
+  const b = `Hola ${e.destino.persona},\n\nTienes un envío esperándote.\n\nID: ${e.id}\nDe: ${e.origen.persona} (${lugar(e.origen)})\nContenido: ${e.tipo}${e.descripcion ? ' – ' + e.descripcion : ''}\nRecibido en: ${u.lugar || donde(e.destino)} a las ${hora(u.ts)}\n\nVer estado: ${urlEnvio(e.id)}\n`;
+  return `mailto:${encodeURIComponent(e.destino.email)}?subject=${encodeURIComponent(s)}&body=${encodeURIComponent(b)}`;
+}
+/* Bloque «Transporte» dentro de la ficha */
+function bloqueAsig(e){
+  const a = e.asig;
+  if(!a) return `<div class="modo pend"><span class="ic">${icon('clock')}</span><div><b>Transporte por asignar</b><span>${esc(e.motivo || 'Lo decide Logística')}</span></div></div>`;
+  const t = ultimo(e, 'transito');
+  let det = '';
+  if(a.modo === 'valija'){ const r = rutaDe(a.ruta), px = e.estado === 'asignado' ? proximaSalida(r) : ''; det = textoRuta(r) + (px ? ' · próxima salida ' + px : ''); }
+  else if(a.modo === 'transportista'){ const u = t.seguimiento ? urlSeguimiento(a.trans, t.seguimiento) : ''; det = t.seguimiento ? `Nº de seguimiento ${esc(t.seguimiento)}${u ? ` · <a href="${esc(u)}" target="_blank" rel="noopener">Ver en ${esc(a.trans)}</a>` : ''}` : 'Pendiente de expedir'; return `<div class="modo"><span class="ic">${icon('truck')}</span><div><b>${esc(a.trans)}</b><span>${det} · ${a.auto ? 'asignado por las reglas' : 'asignado por ' + esc(a.por)}</span></div></div>`; }
+  else det = a.quien ? 'Lo lleva ' + a.quien : 'Lo lleva una persona';
+  return `<div class="modo"><span class="ic">${icon(iconAsig(a))}</span><div><b>${a.modo === 'valija' ? 'Valija' : 'En mano'}</b><span>${esc(det)} · ${a.auto ? 'asignado por las reglas' : 'asignado por ' + esc(a.por)}</span></div></div>`;
+}
+/* Formulario de Logística para asignar o cambiar el transporte */
+function formAsig(e){
+  const a = e.asig || {}, ext = esExt(e);
+  const rutas = (cfg.rutas || []), sug = ext ? null : rutaPara(e.origen, e.destino);
+  const modoIni = a.modo || (ext ? 'transportista' : 'valija');
+  return `<div class="fields">
+      <div><label class="l">Cómo se envía</label><div class="pills">
+        ${!ext ? `<label class="pill"><input type="radio" name="as-modo" value="valija" ${modoIni === 'valija' ? 'checked' : ''}><span>Valija</span></label>` : ''}
+        <label class="pill"><input type="radio" name="as-modo" value="transportista" ${modoIni === 'transportista' ? 'checked' : ''}><span>Transportista</span></label>
+        <label class="pill"><input type="radio" name="as-modo" value="mano" ${modoIni === 'mano' ? 'checked' : ''}><span>En mano</span></label>
+      </div></div>
+      <div data-m="valija"><label class="l">Ruta</label><select id="as-ruta">${rutas.map(r => `<option value="${esc(r.id)}" ${(a.ruta || (sug && sug.id)) === r.id ? 'selected' : ''}>${esc(textoRuta(r))}</option>`).join('')}</select></div>
+      <div data-m="transportista"><label class="l">Transportista</label><select id="as-trans">${(cfg.transportistas || []).map(t => `<option ${a.trans === t.nombre ? 'selected' : ''}>${esc(t.nombre)}</option>`).join('')}</select></div>
+      <div data-m="mano"><label class="l">Quién lo lleva <i>(opcional)</i></label><input id="as-quien" value="${esc(a.quien || '')}" placeholder="Ej.: técnico que va a la obra"></div>
+      <div><label class="l">Nota para el almacén <i>(opcional)</i></label><input id="as-nota" placeholder="Ej.: que salga en la valija de las 10"></div>
+    </div>
+    <button class="btn big" id="as-go" style="background:var(--c-asignado)">${icon('check')} ${e.asig ? 'Cambiar transporte' : 'Asignar transporte'}</button>`;
+}
+function bindAsig(e){
+  const pinta = () => { const m = (document.querySelector('input[name=as-modo]:checked') || {}).value; document.querySelectorAll('[data-m]').forEach(d => d.hidden = d.dataset.m !== m); };
+  document.querySelectorAll('input[name=as-modo]').forEach(r => r.onchange = pinta); pinta();
+  $('#as-go').onclick = async () => {
+    const modo = document.querySelector('input[name=as-modo]:checked').value, ts = Date.now();
+    const asig = { modo, auto:false, ts, por: rol() === 'admin' ? 'Administrador' : (miNombre() || 'Logística') };
+    if(modo === 'valija'){ asig.ruta = $('#as-ruta').value; if(!asig.ruta){ toast('No hay rutas de valija. Créalas en Ajustes.'); return; } }
+    if(modo === 'transportista'){ asig.trans = $('#as-trans').value; if(!asig.trans){ toast('No hay transportistas. Añádelos en Ajustes.'); return; } }
+    if(modo === 'mano') asig.quien = $('#as-quien').value.trim();
+    const b = $('#as-go'); b.disabled = true; b.textContent = 'Guardando…';
+    try{
+      await Store.update(e.id, cur => {
+        if(!antesDeSalir(cur)) throw new Error('El envío ya ha salido (' + labelDe(cur) + ').');
+        cur.asig = asig; cur.motivo = ''; cur.estado = 'asignado'; cur.actualizado = ts;
+        const tmp = Object.assign({}, cur);
+        cur.historial.push({ estado:'asignado', ts, por:asig.por, lugar:textoAsig(tmp), nota:$('#as-nota').value.trim() });
+        return cur;
+      });
+      toast('✓ Transporte asignado');
+    }catch(err){ alert(err.message); }
+    vFicha(e.id);
+  };
+}
+async function vFicha(id, nuevo){
+  limpiar();
+  $('#app').innerHTML = '<div class="empty">Cargando…</div>';
+  let e; try{ e = await Store.get(id); }catch(err){ $('#app').innerHTML = `<div class="card">Error: ${esc(err.message)}</div>`; return; }
+  if(!e){ $('#app').innerHTML = `<div class="empty"><div class="ic">${icon('alert')}</div><b style="color:var(--ink);font-size:18px">No encontrado</b><p>No existe el envío <b>${esc(id)}</b>${Store === Local ? ' en este dispositivo.<br>Estás en modo «Solo este equipo».' : '.'}</p><a class="btn sec" href="#/escanear">Probar otro código</a></div>`; return; }
+  const nx = sigDe(e), dest = e.destino, O = ordenDe(e), idx = O.indexOf(e.estado), ext = esExt(e);
+  const alm = esAlmacen(), logi = esLogistica();
+  let accion = '', puede = false;
+  if(e.estado === 'solicitado'){
+    accion = logi
+      ? `<div class="card next-card" style="--c:${col('asignado')}"><div class="next-head"><span class="next-ic">${icon('route')}</span><div><small>Paso 2 de ${O.length} · Logística</small><b>Asignar transporte</b><p>${esc(e.motivo ? 'Las reglas no lo han decidido: ' + e.motivo + '.' : 'Elige cómo se envía.')}</p></div></div>${formAsig(e)}</div>`
+      : `<div class="card info-card"><span class="ic">${icon('clock')}</span><div><b>Siguiente paso: Logística asigna el transporte</b><p class="muted" style="margin:2px 0 0">${esc(e.motivo ? 'Motivo: ' + e.motivo + '. ' : '')}${Store === Cloud ? 'Esta página se actualiza sola.' : ''}</p></div></div>`;
+  } else if(nx){
+    puede = puedePaso(e, nx);
+    if(!puede){
+      const quien = nx === 'transito' ? `el almacén de ${donde(e.origen)}` : ext ? `Logística o el almacén de ${donde(e.origen)}` : `el almacén de ${donde(dest)}`;
+      accion = `<div class="card info-card"><span class="ic">${icon(alm ? 'lock' : 'clock')}</span><div><b>Siguiente paso: ${PASOS[nx].titulo(e).toLowerCase()}</b><p class="muted" style="margin:2px 0 0">Lo registra ${esc(quien)}.${alm && !logi ? ` Tu puesto es ${esc(miPuesto())}, desde aquí no puedes hacer este paso.` : ''}${Store === Cloud ? ' Esta página se actualiza sola.' : ''}</p></div></div>`;
+    } else {
+      const P = PASOS[nx];
+      const lblPor = { transito: ext ? 'Quién lo prepara' : e.asig.modo === 'valija' ? 'Quién lleva la valija' : 'Quién se lo lleva', recibido:'Quién lo recibe en destino', entregado: ext ? 'Quién lo confirma' : 'Quién lo entrega' }[nx];
+      accion = `<div class="card next-card" style="--c:${col(nx)}">
+        <div class="next-head"><span class="next-ic">${icon(ESTADOS[nx].icon)}</span><div><small>Paso ${idx + 2} de ${O.length}</small><b>${esc(P.titulo(e))}</b><p>${esc(P.texto(e))}</p></div></div>
+        <div class="fields">
+          ${nx === 'transito' && ext ? `<div><label class="l">Nº de seguimiento de ${esc(e.asig.trans)}</label><input id="a-seg" autocomplete="off" placeholder="El que da el transportista"></div>
+            <div class="grid2"><div><label class="l">Bultos</label><input id="a-bul" type="number" min="1" value="${e.bultos}" inputmode="numeric"></div><div><label class="l">Peso real <i>(kg)</i></label><input id="a-peso" type="number" min="0" step="0.1" inputmode="decimal" value="${e.peso || ''}"></div></div>` : ''}
+          <div><label class="l">${lblPor}</label>${campoPor(e, nx)}</div>
+          ${nx === 'recibido' ? `<div><label class="l">Dónde se recibe</label><input id="a-lugar" value="${esc(donde(dest))}"></div>` : ''}
+          ${nx === 'entregado' && !ext ? `<div><label class="l">Lo recoge</label><input id="a-rec" value="" placeholder="Ej.: ${esc(dest.persona)}" autocomplete="off"></div>
+            <div><label class="l">Firma <i>(opcional)</i></label><div class="sig-w"><canvas class="sig" id="sig"></canvas><span class="ph" id="sig-ph">Firma aquí con el dedo</span><button class="btn ghost" type="button" id="sig-clr">Borrar</button></div></div>` : ''}
+          ${nx === 'entregado' && ext ? `<div><label class="l">Lo recibió <i>(según el transportista, opcional)</i></label><input id="a-rec" value="" placeholder="Ej.: ${esc(dest.persona || dest.empresa)}" autocomplete="off"></div>` : ''}
+          <details class="more"><summary>Añadir una nota</summary><div style="margin-top:10px"><input id="a-nota" placeholder="Ej.: caja algo dañada, dejado en conserjería…"></div></details>
+        </div>
+        <button class="btn big" id="a-go">${icon('check')} ${esc(P.boton(e))}</button>
+      </div>`;
+    }
+    if(logi && e.estado === 'asignado') accion += `<div class="card"><details class="box"><summary>Cambiar transporte</summary>${formAsig(e)}</details></div>`;
+  } else {
+    const u = ultimo(e, 'entregado');
+    accion = `<div class="card done-card"><div class="ic">${icon('check')}</div><b style="font-size:20px">Envío completado</b><p style="margin:4px 0 0;opacity:.9">Entregado a ${esc(u.receptor || dest.persona || dest.empresa)} · ${fmt(u.ts)}</p></div>`;
+  }
+  const aviso = alm && e.estado === 'recibido' && dest.email
+    ? `<div class="card"><div class="card-t">${icon('mail')} Avisar a ${esc(dest.persona)}</div><p class="muted" style="margin:-6px 0 12px">Se abrirá tu correo con el aviso ya escrito.</p><a class="btn sec" href="${mailAviso(e)}">${icon('mail')} Enviar aviso</a></div>` : '';
+  const verbo = h => ({ solicitado:'Pedido por', asignado:'Asignado por', transito: ext ? 'Preparado por' : 'Se lo llevó', recibido:'Recibido por', entregado: ext ? 'Confirmado por' : 'Entregado por' }[h.estado] || '');
+  const hist = e.historial.slice().reverse().map(h => `<li style="--c:${col(h.estado)}"><span class="d">${icon(ESTADOS[h.estado].icon)}</span><div>
+      <b>${esc(h.estado === 'solicitado' ? 'Envío solicitado' : h.estado === 'asignado' ? 'Transporte: ' + (h.lugar || '') : pasoTxt(e, h.estado))}</b> <span class="t">· ${fmt(h.ts)}</span>
+      <div class="t">${verbo(h)} ${esc(h.por)}${h.lugar && h.estado !== 'asignado' ? ' · ' + esc(h.lugar) : ''}</div>
+      ${h.seguimiento ? `<div class="t">Nº de seguimiento ${esc(h.seguimiento)}</div>` : ''}
+      ${h.viaje ? `<div class="t">Valija ${esc(h.viaje)}</div>` : ''}
+      ${h.registra && h.registra !== h.por ? `<div class="t">Registrado por ${esc(h.registra)}</div>` : ''}
+      ${h.receptor ? `<div class="t">Lo recogió <b style="color:var(--ink);font-size:13px">${esc(h.receptor)}</b></div>` : ''}
+      ${h.nota ? `<div class="t">“${esc(h.nota)}”</div>` : ''}
+      ${h.firma ? `<img src="${h.firma}" alt="Firma">` : ''}</div></li>`).join('');
+  const etqOpen = nuevo || antesDeSalir(e);
+  $('#app').innerHTML = `
+    <a class="back" href="#/${alm ? 'envios' : 'mis'}">${icon('back')} ${alm ? 'Envíos' : 'Mis envíos'}</a>
+    ${nuevo ? (alm ? `<div class="ok-banner"><span class="ic">${icon('check')}</span><div>Envío solicitado. ${e.asig ? 'Transporte: ' + esc(textoAsig(e)) + '.' : 'Queda pendiente de que Logística asigne el transporte.'} Imprime la etiqueta y pégala en el paquete.</div></div>`
+      : `<div class="card created"><div class="h"><span>${icon('check')}</span>Envío solicitado</div>
+          <p style="margin:12px 0 0">Tu código de seguimiento:</p><div class="code-big">${esc(e.id)}</div>
+          <p style="margin:0 0 10px;font-size:14px">${e.asig ? 'Irá por ' + esc(textoAsig(e)) + '. ' : 'Logística decidirá cómo se envía. '}Apunta el código en el paquete (o imprime la etiqueta) y bájalo al almacén.</p>
+          <div style="display:flex;gap:10px;align-items:center;background:#fff;border-radius:12px;padding:10px 12px;font-size:14px;color:var(--ink)"><span style="color:#ca8a04">${icon('star')}</span><div><b>Ya está en «Mis envíos».</b> Ahí verás cuándo sale, cuándo llega y cuándo se entrega.</div></div>
+          <a class="btn" href="#/mis" style="margin-top:10px;width:100%;background:#16a34a">${icon('star')} Ver Mis envíos</a></div>`) : ''}
+    <div class="card hero" style="--c:${col(e.estado)}">
+      <div class="hero-top"><span class="idm">${esc(e.id)}</span><span style="display:flex;gap:6px">${urgB(e)}${badge(e)}</span></div>
+      <div class="frase">${esc(frase(e))}</div>
+      ${stepper(e)}
+      <div class="route">
+        <div><small>De</small><b>${esc(donde(e.origen))}</b><span>${esc(e.origen.persona)}</span></div>
+        <span class="arr">${icon('arrow')}</span>
+        <div><small>Para</small><b>${esc(donde(dest))}</b><span>${esc(dest.persona || '')}</span></div>
+      </div>
+      ${bloqueAsig(e)}
+      <div class="follow btns">${!alm && !(e.estado === 'entregado' && !sigo(e.id)) ? '<button class="btn ghost" id="b-follow"></button>' : ''}${puedeEditar(e) ? `<a class="btn ghost" href="#/editar/${encodeURIComponent(e.id)}">${icon('edit')} Modificar</a>` : ''}</div>
+    </div>
+    ${nuevo ? '' : accion}
+    <div class="card"><details class="box" ${etqOpen ? 'open' : ''}><summary>Etiqueta</summary>
+      <div class="etq-wrap">${etiquetaHTML(e)}</div>
+      ${ext ? `<p class="muted" style="margin:10px 0 0;text-align:center">Es la etiqueta interna de seguimiento. Además, el paquete lleva la etiqueta del transportista.</p>` : ''}
+      ${e.bultos > 1 ? `<p class="muted" style="margin:10px 0 0;text-align:center">Se imprime una etiqueta por bulto (1/${e.bultos} … ${e.bultos}/${e.bultos}), todas con el mismo QR.</p>` : ''}
+      <div class="btns" style="margin-top:14px"><button class="btn" id="b-print">${icon('printer')} ${e.bultos > 1 ? `Imprimir ${e.bultos} etiquetas` : 'Imprimir'}</button><button class="btn sec" id="b-copy">${icon('link')} Copiar enlace</button></div>
+      ${urlOk() ? '' : `<div class="warn">${icon('alert')}<div>Estás en una vista previa, no en la web publicada: este QR no funcionará y puede que no se pueda imprimir. Publica la app y ábrela en el navegador, o pon su dirección en Ajustes.</div></div>`}
+    </details></div>
+    ${nuevo ? accion : ''}
+    ${aviso}
+    <div class="card"><div class="card-t">Historial</div><ul class="tl">${hist}</ul></div>
+    <div class="card"><details class="box"><summary>Detalles</summary><dl class="kv">
+      <dt>Origen</dt><dd>${esc(lugar(e.origen))}<br><span class="muted">${esc(e.origen.persona)}</span></dd>
+      <dt>Destino</dt><dd>${esc(lugar(dest))}<br><span class="muted">${esc(dest.persona || '')}${dest.telefono ? ' · ' + esc(dest.telefono) : ''}${dest.email ? ' · ' + esc(dest.email) : ''}</span></dd>
+      <dt>Transporte</dt><dd>${esc(textoAsig(e))}</dd>
+      <dt>Contenido</dt><dd>${esc(e.tipo)}${e.descripcion ? ' – ' + esc(e.descripcion) : ''}</dd>
+      <dt>Bultos</dt><dd>${e.bultos}${e.peso ? ' · ' + String(e.peso).replace('.', ',') + ' kg' : ''}</dd>
+      ${(e.especial || []).length ? `<dt>Especial</dt><dd>${e.especial.map(k => esc(ESPECIAL[k] || k)).join(', ')}</dd>` : ''}
+      <dt>Prioridad</dt><dd>${e.prioridad === 'urgente' ? 'Urgente' : 'Normal'}</dd>
+      <dt>Fecha</dt><dd>${fmt(e.fecha)}</dd>
+      ${e.modificado ? `<dt>Modificado</dt><dd>${fmt(e.modificado)}</dd>` : ''}
+    </dl></details></div>`;
+  $('#b-print').onclick = () => imprimir(e);
+  const pintaFollow = () => { const s = sigo(e.id), b = $('#b-follow'); if(!b) return; b.className = 'btn ' + (s ? 'sec on-star' : 'ghost'); b.innerHTML = icon('star') + (s ? ' Lo sigues (en Mis envíos)' : ' Seguir este envío'); };
+  pintaFollow();
+  if($('#b-follow')) $('#b-follow').onclick = () => { if(sigo(e.id)){ dejar(e.id); toast('Ya no lo sigues'); } else { seguir(e.id); toast('Lo verás en Mis envíos'); } pintaFollow(); };
+  if($('#as-go')) bindAsig(e);
+  if(!puede && !$('#as-go')) unsubs.push(Store.watch([e.id], l => { if(l[0] && l[0].actualizado !== e.actualizado){ toast('Estado actualizado: ' + labelDe(l[0])); vFicha(e.id); } }));
+  $('#b-copy').onclick = async () => { try{ await navigator.clipboard.writeText(urlEnvio(e.id)); toast('Enlace copiado'); }catch(_){ prompt('Copia el enlace:', urlEnvio(e.id)); } };
+  if(puede){
+    const sig = nx === 'entregado' && !ext ? firmaPad($('#sig')) : null;
+    if(sig) $('#sig-clr').onclick = () => { sig.clear(); $('#sig-ph').style.display = ''; };
+    if($('#a-por-sel')) $('#a-por-sel').onchange = ev => { const o = ev.target.value === '__otro'; $('#a-por').hidden = !o; if(o) $('#a-por').focus(); };
+    $('#a-go').onclick = async () => {
+      const sel = $('#a-por-sel'), por = (sel && sel.value !== '__otro' ? sel.value : $('#a-por').value).trim();
+      if(!por){ toast(sel && sel.value === '' ? 'Elige quién lo registra' : nx === 'transito' ? 'Escribe quién se lleva el paquete' : 'Escribe el nombre'); (sel && sel.value === '' ? sel : $('#a-por')).focus(); return; }
+      const ev = { estado:nx, ts:Date.now(), por, nota:$('#a-nota').value.trim() };
+      const reg = rol() === 'admin' ? 'Administrador' : miNombre(); if(reg) ev.registra = reg;
+      let extra = {};
+      if(nx === 'transito'){
+        ev.lugar = donde(e.origen);
+        if(ext){
+          ev.seguimiento = $('#a-seg').value.trim();
+          if(!ev.seguimiento){ toast('Apunta el número de seguimiento del transportista'); $('#a-seg').focus(); return; }
+          extra = { bultos:Math.max(1, Number($('#a-bul').value) || e.bultos), peso:Number(String($('#a-peso').value).replace(',', '.')) || e.peso || 0 };
+        }
+      }
+      if(nx === 'recibido') ev.lugar = $('#a-lugar').value.trim() || donde(dest);
+      if(nx === 'entregado'){
+        ev.receptor = $('#a-rec').value.trim();
+        if(!ext && !ev.receptor){ toast('Indica quién recoge el paquete'); return; }
+        ev.lugar = donde(dest);
+        if(sig && sig.drawn()) ev.firma = sig.data();
+      }
+      const b = $('#a-go'); b.disabled = true; b.textContent = 'Guardando…';
+      try{
+        await Store.update(e.id, cur => {
+          if(cur.estado !== e.estado) throw new Error('Otra persona ya actualizó este envío (' + labelDe(cur) + ').');
+          Object.assign(cur, extra); cur.historial.push(ev); cur.estado = nx; cur.actualizado = ev.ts; return cur;
+        });
+        if(navigator.vibrate) navigator.vibrate(60);
+        toast('✓ ' + pasoTxt(e, nx));
+      }catch(err){ alert(err.message); }
+      vFicha(e.id);
+    };
+  }
+}
+function firmaPad(c){
+  const W = 600, H = 200; c.width = W; c.height = H;
+  const x = c.getContext('2d'); x.lineWidth = 3; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#0f172a';
+  let on = false, drawn = false;
+  const p = ev => { const r = c.getBoundingClientRect(); return [(ev.clientX - r.left) * W / r.width, (ev.clientY - r.top) * H / r.height]; };
+  c.onpointerdown = ev => { on = true; c.setPointerCapture(ev.pointerId); x.beginPath(); x.moveTo(...p(ev)); const ph = $('#sig-ph'); if(ph) ph.style.display = 'none'; };
+  c.onpointermove = ev => { if(!on) return; x.lineTo(...p(ev)); x.stroke(); drawn = true; };
+  c.onpointerup = c.onpointercancel = () => on = false;
+  return { clear(){ x.clearRect(0,0,W,H); drawn = false; }, drawn: () => drawn, data: () => c.toDataURL('image/png') };
+}
+
+/* ===== Vista: lista de envíos ===== */
+async function vLista(){
+  limpiar();
+  if(!filtroPend) filtro = { estado:'activos', q:'', desde:'', hasta:'' };   // al volver a Envíos, búsqueda en blanco
+  filtroPend = false;
+  $('#app').innerHTML = '<div class="empty">Cargando envíos…</div>';
+  let todos; try{ todos = await Store.list(); }catch(err){ $('#app').innerHTML = `<div class="card">Error al cargar: ${esc(err.message)}</div>`; return; }
+  const cnt = k => k === 'valija' ? todos.filter(e => e.asig && e.asig.modo === 'valija' && e.estado !== 'entregado').length : k === 'fuera' ? todos.filter(e => esExt(e) && e.estado !== 'entregado').length : k === 'todos' ? todos.length : k === 'activos' ? todos.filter(e => e.estado !== 'entregado').length : k === 'urgentes' ? todos.filter(e => e.prioridad === 'urgente' && e.estado !== 'entregado').length : todos.filter(e => e.estado === k).length;
+  const chips = [['activos','En curso'],['urgentes','Urgentes'],['solicitado','Por asignar'],['asignado','Por preparar'],['transito','En tránsito'],['recibido','En destino'],['entregado','Entregados'],['valija','Valija'],['fuera','Fuera de la empresa'],['todos','Todos']];
+  $('#app').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px"><div class="h1" style="flex:1">Envíos</div><button class="btn ghost" id="rf" title="Actualizar" style="padding:10px">${icon('refresh')}</button></div>
+    <p class="sub">Busca un envío o filtra por estado.</p>
+    <div class="search">${icon('search')}<input id="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Código (ej. 5), persona, sede…" value="${esc(filtro.q)}"></div>
+    <div class="chips">${chips.map(([k,l]) => `<button class="chip ${filtro.estado === k ? 'on' : ''}" data-k="${k}">${l}<i>${cnt(k)}</i></button>`).join('')}</div>
+    <details class="more" style="margin-bottom:12px"><summary>Filtrar por fecha</summary>
+      <div class="grid2" style="margin-top:10px"><div><label class="l">Desde</label><input type="date" id="d1" value="${filtro.desde}"></div><div><label class="l">Hasta</label><input type="date" id="d2" value="${filtro.hasta}"></div></div>
+    </details>
+    <div id="lista"></div>
+    <div class="btns" style="margin-top:6px"><button class="btn ghost" id="csv">${icon('download')} Exportar a Excel (CSV)</button></div>`;
+  const pinta = () => {
+    const q = filtro.q.toLowerCase().trim();
+    const d1 = filtro.desde ? new Date(filtro.desde + 'T00:00').getTime() : 0;
+    const d2 = filtro.hasta ? new Date(filtro.hasta + 'T23:59:59').getTime() : Infinity;
+    const num = /^\d{1,6}$/.test(q) ? Number(q) : null;
+    const l = todos.filter(e => {
+      if(num !== null) return Number(e.id.slice(-6)) === num;   // número de envío: busca ese envío exacto, en cualquier estado
+      if(q){ const t = [e.id, e.origen.persona, e.origen.sede, e.origen.edificio, e.destino.persona, e.destino.sede, e.destino.edificio, e.destino.empresa, e.destino.poblacion, textoAsig(e), (ultimo(e, 'transito').seguimiento || ''), e.tipo, e.descripcion, ...e.historial.map(h => h.por + ' ' + (h.receptor || ''))].join(' ').toLowerCase(); return t.includes(q); }  // texto: en todos los estados
+      if(filtro.estado === 'activos' && e.estado === 'entregado') return false;
+      if(filtro.estado === 'urgentes' && !(e.prioridad === 'urgente' && e.estado !== 'entregado')) return false;
+      if(ESTADOS[filtro.estado] && e.estado !== filtro.estado) return false;
+      if(filtro.estado === 'valija' && !(e.asig && e.asig.modo === 'valija' && e.estado !== 'entregado')) return false;
+      if(filtro.estado === 'fuera' && !(esExt(e) && e.estado !== 'entregado')) return false;
+      if(e.fecha < d1 || e.fecha > d2) return false;
+      return true;
+    }).sort((a,b) => (b.prioridad === 'urgente' && b.estado !== 'entregado') - (a.prioridad === 'urgente' && a.estado !== 'entregado') || b.creado - a.creado);
+    window._lista = l;
+    document.querySelectorAll('.chip').forEach(c => c.style.opacity = q ? '.45' : '');
+    $('#lista').innerHTML = l.length ? l.map(itemHTML).join('')
+      : `<div class="empty"><div class="ic">${icon('package')}</div>No hay envíos con este filtro.<br><br><a class="btn" href="#/nuevo">${icon('plus')} Crear envío</a></div>`;
+  };
+  document.querySelectorAll('.chip').forEach(c => c.onclick = () => { filtro.estado = c.dataset.k; filtro.q = ''; $('#q').value = ''; document.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === c)); pinta(); });
+  $('#q').oninput = ev => { filtro.q = ev.target.value; pinta(); };
+  $('#q').onkeydown = ev => { if(ev.key !== 'Enter') return; const v = ev.target.value.trim(); const id = idDesde(v) || (/^\d{1,6}$/.test(v) ? fmtId(new Date().getFullYear(), +v) : null); if(id){ ev.preventDefault(); abrirEnvio(id); } };
+  $('#d1').onchange = ev => { filtro.desde = ev.target.value; pinta(); };
+  $('#d2').onchange = ev => { filtro.hasta = ev.target.value; pinta(); };
+  $('#rf').onclick = vLista;
+  $('#csv').onclick = () => exportCSV(window._lista || []);
+  pinta();
+}
+function exportCSV(l){
+  const f = ts => ts ? fmt(ts) : '';
+  const cols = ['ID','Estado','Prioridad','Fecha','Origen sede','Origen edificio','Origen planta','Envía','Destino','Destino dirección','Recibe','Transporte','Asignado por','Nº seguimiento','Tipo','Descripción','Bultos','Peso kg','Salida','Salida por','Recibido','Recibido por','Entregado','Entregado a'];
+  const rows = l.map(e => { const t = ultimo(e,'transito'), r = ultimo(e,'recibido'), d = ultimo(e,'entregado');
+    return [e.id, labelDe(e), e.prioridad, f(e.fecha), e.origen.sede || '', e.origen.edificio, e.origen.planta, e.origen.persona, donde(e.destino), esExt(e) ? dirExt(e.destino) : lugar(e.destino), e.destino.persona, textoAsig(e), e.asig ? (e.asig.auto ? 'Reglas' : e.asig.por) : '', t.seguimiento || '', e.tipo, e.descripcion, e.bultos, e.peso ? String(e.peso).replace('.', ',') : '', f(t.ts), t.por || '', f(r.ts), r.por || '', f(d.ts), d.receptor || '']; });
+  const csv = '﻿' + [cols, ...rows].map(r => r.map(v => '"' + String(v ?? '').replace(/"/g,'""') + '"').join(';')).join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  a.download = 'logistica-' + new Date().toISOString().slice(0,10) + '.csv'; a.click();
+}
+
+/* ===== Vista: valija ===== */
+/* Por cada ruta: lo que hay que cargar en mi almacén y lo que viene hacia mi almacén. Carga y recepción en bloque. */
+async function vValija(){
+  limpiar();
+  $('#app').innerHTML = '<div class="empty">Cargando valija…</div>';
+  let todos; try{ todos = await Store.list(); }catch(err){ $('#app').innerHTML = `<div class="card">Error al cargar: ${esc(err.message)}</div>`; return; }
+  const yo = miPuesto(), adm = rol() === 'admin', logi = esLogistica();
+  const val = todos.filter(e => e.asig && e.asig.modo === 'valija');
+  const cargar = val.filter(e => e.estado === 'asignado' && (adm || logi || enPuesto(e.origen, yo)));
+  const llega = val.filter(e => e.estado === 'transito' && (adm || logi || enPuesto(e.destino, yo)));
+  const porRuta = l => { const m = {}; l.forEach(e => (m[e.asig.ruta] = m[e.asig.ruta] || []).push(e)); return Object.entries(m); };
+  const puedeCargar = e => adm || enPuesto(e.origen, yo), puedeRecibir = e => adm || enPuesto(e.destino, yo);
+  const fila = (e, ok) => `<label class="vrow"><input type="checkbox" value="${esc(e.id)}" ${ok ? 'checked' : 'disabled'}><div><a href="#/envio/${encodeURIComponent(e.id)}">${esc(e.id)}</a>${e.prioridad === 'urgente' ? ' <span class="badge urg">Urgente</span>' : ''}
+      <small>${esc(donde(e.origen))} → ${esc(donde(e.destino))} · para ${esc(e.destino.persona)} · ${e.bultos} bulto${e.bultos > 1 ? 's' : ''}</small></div></label>`;
+  const grupo = (tipo, [rid, l]) => { const r = rutaDe(rid), px = proximaSalida(r), n = l.filter(tipo === 'c' ? puedeCargar : puedeRecibir).length;
+    return `<div class="vg" data-t="${tipo}" data-r="${esc(rid)}"><div class="vg-h"><b>${esc(textoRuta(r))}</b><span class="muted">${tipo === 'c' && px ? 'Próxima salida ' + esc(px) + ' · ' : ''}${l.length} envío${l.length === 1 ? '' : 's'}</span></div>
+      ${l.map(e => fila(e, tipo === 'c' ? puedeCargar(e) : puedeRecibir(e))).join('')}
+      ${n ? `<div class="fields" style="margin:8px 0 0">${tipo === 'c' ? `<div><label class="l">Quién lleva la valija</label><input class="v-por" placeholder="Nombre del chófer o de quien la lleva" autocomplete="off"></div>` : ''}</div>
+      <div class="btns" style="margin-top:10px"><button class="btn v-go" style="background:${tipo === 'c' ? col('transito') : col('recibido')}">${icon('check')} ${tipo === 'c' ? 'Dar salida' : 'Recibir marcados'}</button>${tipo === 'c' ? `<button class="btn ghost v-hoja">${icon('printer')} Hoja</button>` : ''}</div>` : `<p class="muted" style="margin:8px 0 0">${tipo === 'c' ? 'Lo carga el almacén de origen.' : 'Lo recibe el almacén de destino.'}</p>`}</div>`; };
+  const gc = porRuta(cargar), gl = porRuta(llega);
+  $('#app').innerHTML = `<div style="display:flex;align-items:center;gap:10px"><div class="h1" style="flex:1">Valija</div><button class="btn ghost" id="rf" title="Actualizar" style="padding:10px">${icon('refresh')}</button></div>
+    <p class="sub">${adm || logi ? 'Todas las rutas.' : 'Tu puesto: ' + esc(yo) + '.'} Marca los envíos y da la salida o el recibí de todos a la vez.</p>
+    <div class="card"><div class="card-t"><span class="num" style="background:${col('transito')}">1</span>Para cargar${adm || logi ? '' : ' aquí'}</div>
+      ${gc.length ? gc.map(g => grupo('c', g)).join('') : `<p class="muted" style="margin:0">No hay nada esperando la valija.</p>`}</div>
+    <div class="card"><div class="card-t"><span class="num" style="background:${col('recibido')}">2</span>${adm || logi ? 'En camino' : 'Viene hacia aquí'}</div>
+      ${gl.length ? gl.map(g => grupo('l', g)).join('') : `<p class="muted" style="margin:0">No viene nada en la valija.</p>`}</div>`;
+  $('#rf').onclick = vValija;
+  const marcados = g => [...g.querySelectorAll('input[type=checkbox]:checked')].map(c => todos.find(e => e.id === c.value)).filter(Boolean);
+  document.querySelectorAll('.vg').forEach(g => {
+    const r = rutaDe(g.dataset.r), go = g.querySelector('.v-go'), hoja = g.querySelector('.v-hoja');
+    if(hoja) hoja.onclick = () => { const l = marcados(g); if(!l.length){ toast('Marca algún envío'); return; } imprimirHoja(r, l, (g.querySelector('.v-por') || {}).value || ''); };
+    if(!go) return;
+    go.onclick = async () => {
+      const l = marcados(g); if(!l.length){ toast('Marca algún envío'); return; }
+      const carga = g.dataset.t === 'c', ts = Date.now();
+      const por = carga ? g.querySelector('.v-por').value.trim() : (miNombre() || (rol() === 'admin' ? 'Administrador' : yo));
+      if(carga && !por){ toast('Escribe quién lleva la valija'); g.querySelector('.v-por').focus(); return; }
+      const viaje = 'VAL-' + new Date(ts).toISOString().slice(0, 16).replace(/[-:T]/g, '').slice(2);
+      const reg = rol() === 'admin' ? 'Administrador' : miNombre();
+      go.disabled = true; go.textContent = 'Guardando…';
+      let ok = 0; const fallos = [];
+      for(const e of l){
+        const ev = carga ? { estado:'transito', ts, por, lugar:donde(e.origen), viaje } : { estado:'recibido', ts, por, lugar:donde(e.destino) };
+        if(reg) ev.registra = reg;
+        try{ await Store.update(e.id, cur => { if(cur.estado !== (carga ? 'asignado' : 'transito')) throw new Error(labelDe(cur)); cur.historial.push(ev); cur.estado = ev.estado; cur.actualizado = ts; return cur; }); ok++; }
+        catch(err){ fallos.push(e.id + ' (' + err.message + ')'); }
+      }
+      if(navigator.vibrate) navigator.vibrate(60);
+      toast(`✓ ${ok} envío${ok === 1 ? '' : 's'} ${carga ? 'en la valija' : 'recibido' + (ok === 1 ? '' : 's')}`);
+      if(fallos.length) alert('No se actualizaron porque otra persona ya los había cambiado:\n' + fallos.join('\n'));
+      vValija();
+    };
+  });
+}
+
+/* ===== Vista: escáner ===== */
+let stream = null, raf = 0;
+function stopScanner(){ cancelAnimationFrame(raf); if(stream){ stream.getTracks().forEach(t => t.stop()); stream = null; } }
+function idDesde(txt){
+  const t = String(txt || '').trim();
+  try{ const u = new URL(t); const v = u.searchParams.get('envio'); if(v) return v.toUpperCase(); }catch(_){}
+  // Tolerante con pistolas configuradas con otro teclado (el guion puede llegar como ' o ?)
+  const m = t.toUpperCase().match(/LOG\W?(\d{4})\W?(\d{1,6})(?!\d)/); return m ? `LOG-${m[1]}-${m[2].padStart(6, '0')}` : null;
+}
+function abrirEnvio(id){ const h = '#/envio/' + encodeURIComponent(id); if(location.hash === h) route(); else location.hash = h; }
+function vScan(){
+  const alm = esAlmacen(), tactil = matchMedia('(pointer:coarse)').matches;
+  const manual = `<div class="card"><label class="l">Escribe el número del envío <i>(vale solo el número, ej. 15)</i> o usa la pistola lectora</label>
+      <div class="row-in"><input id="mid" inputmode="text" placeholder="Ej.: 15" autocapitalize="characters" autocomplete="off"><button class="btn" id="mgo">${icon('arrow')} Abrir</button></div>
+      <p class="muted" style="margin:12px 0 0">Con pistola: dispara al código y se abre el envío. Funciona en cualquier pantalla de la app.${tactil ? ' En el móvil también puedes usar la cámara normal.' : ''}</p></div>`;
+  const camara = `<div class="scan" id="scanbox"><video id="v" playsinline muted></video><div class="frame"></div><div class="line"></div><div class="st" id="st">Iniciando cámara…</div></div>`;
+  $('#app').innerHTML = `<div class="h1">${alm ? 'Escanear' : 'Consultar envío'}</div><p class="sub">${tactil ? 'Apunta al QR de la etiqueta o escribe el número.' : 'Escribe el número del envío o usa la pistola.'}</p>
+    ${tactil ? camara + manual : manual + camara}`;
+  $('#mgo').onclick = () => { const v = $('#mid').value.trim(); if(!v) return; const id = idDesde(v) || (/^\d{1,6}$/.test(v) ? fmtId(new Date().getFullYear(), +v) : v.toUpperCase()); stopScanner(); abrirEnvio(id); };
+  if(!tactil) $('#mid').focus();
+  $('#mid').onkeydown = ev => { if(ev.key === 'Enter') $('#mgo').click(); };
+  const sinCamara = () => { const b = $('#scanbox'); if(b) b.remove(); };
+  if(!navigator.mediaDevices?.getUserMedia){ sinCamara(); return; }
+  const ok = txt => { const id = idDesde(txt); if(!id){ $('#st').textContent = 'Ese QR no es de un envío'; return false; }
+    if(navigator.vibrate) navigator.vibrate(80); stopScanner(); abrirEnvio(id); return true; };
+  navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1920 }, height:{ ideal:1080 } }, audio:false }).then(async s => {
+    stream = s; const v = $('#v'); if(!v){ stopScanner(); return; }
+    v.setAttribute('playsinline', ''); v.muted = true; v.srcObject = s;
+    try{ await v.play(); }catch(_){}
+    $('#st').textContent = 'Buscando código QR…';
+    let det = null;
+    if('BarcodeDetector' in window){ try{ const f = await BarcodeDetector.getSupportedFormats(); if(f.includes('qr_code')) det = new BarcodeDetector({ formats:['qr_code'] }); }catch(_){} }
+    const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently:true });
+    let n = 0, busy = false;
+    const tick = async () => {
+      if(!stream) return;
+      if(!busy && v.readyState >= 2 && v.videoWidth){
+        busy = true;
+        try{
+          if(det){ const r = await det.detect(v); if(r.length && ok(r[0].rawValue)) return; }
+          else if(window.jsQR){
+            const vw = v.videoWidth, vh = v.videoHeight; let sx, sy, sw, sh, w, h;
+            if(n++ % 2 === 0){ const side = Math.min(vw, vh) * .75; sx = (vw - side) / 2; sy = (vh - side) / 2; sw = sh = side; w = h = 640; }  // centro, más ampliado
+            else { sx = 0; sy = 0; sw = vw; sh = vh; w = 800; h = Math.round(vh * w / vw); }                                    // imagen completa
+            cv.width = w; cv.height = h; cx.drawImage(v, sx, sy, sw, sh, 0, 0, w, h);
+            const r = jsQR(cx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts:'attemptBoth' });
+            if(r && ok(r.data)) return;
+          } else { $('#st').textContent = 'No se pudo cargar el lector. Usa la cámara del móvil o escribe el código.'; return; }
+        }catch(_){}
+        busy = false;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    tick();
+  }).catch(err => {
+    if(err.name === 'NotAllowedError'){ if($('#st')) $('#st').textContent = 'Sin permiso para la cámara. Actívalo en los ajustes del navegador.'; }
+    else sinCamara();   // equipo sin cámara: solo queda el campo para escribir o la pistola
+  });
+}
+
+/* ===== Vista: ajustes ===== */
+function vAjustes(){
+  limpiar();
+  const r = rol(), adm = esAdmin(), personas = usaPersonas(), nube = Store === Cloud;
+  const sesion = LS.get('log_rol', {}) || {}, yo = userDe(sesion.uid);
+  const misPuestos = personas && r === 'almacen' && yo ? puestosTodos().filter(p => (yo.puestos || []).includes(p)) : puestosTodos();
+  const opPuestos = misPuestos.map(p => `<option ${p === miPuesto() ? 'selected' : ''}>${esc(p)}</option>`).join('');
+  const inPin = (id, ph) => `<input id="${id}" class="pin" type="text" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="${ph}" style="text-transform:none">`;
+  let acceso = '';
+  if(hayPin()){
+    if(r === 'trabajador') acceso = `
+      <div class="card"><div class="card-t">${icon('lock')} Acceso de almacén y Logística</div>
+        <p class="muted" style="margin:-6px 0 12px">Almacén y recepción registran la salida de lo que sale de su puesto, y el recibí y la entrega de lo que llega. Logística asigna el transporte y lleva las rutas y las reglas.</p>
+        <div class="fields" style="margin:0">
+          <div><label class="l">Mi puesto</label><select id="ac-puesto">${opPuestos}</select></div>
+          ${personas ? `<div><label class="l">Quién eres</label><select id="ac-user"></select></div>` : ''}
+          <div class="row-in">${inPin('ac-pin', personas ? 'Tu PIN personal' : 'PIN de almacén')}<button class="btn" id="ac-alm">Entrar</button></div>
+        </div>
+      </div>
+      ${hayPinAdmin() ? `<div class="card"><div class="card-t">${icon('lock')} Administrador</div>
+        <div class="row-in">${inPin('ad-pin', 'PIN de administrador')}<button class="btn ghost" id="ac-adm">Entrar</button></div></div>` : ''}`;
+    else if(r === 'almacen') acceso = `
+      <div class="card"><div class="card-t">${icon('lock')} ${miPuesto() === LOGI ? 'Modo Logística' : 'Modo almacén'}</div>
+        <p class="muted" style="margin:-6px 0 12px">${sesion.nombre ? `Has entrado como <b style="color:var(--ink)">${esc(sesion.nombre)}</b>. ` : ''}Estás en el puesto <b style="color:var(--ink)">${esc(miPuesto())}</b>. ${miPuesto() === LOGI ? 'Asignas el transporte de los envíos, confirmas las entregas fuera de la empresa y llevas las rutas de valija y las reglas.' : 'Registras la salida de lo que sale de aquí, y el recibí y la entrega de lo que llega aquí.'}</p>
+        ${misPuestos.length > 1 ? `<label class="l">Cambiar de puesto</label><select id="ac-cambia">${opPuestos}</select>` : ''}
+        <div class="btns" style="margin-top:12px"><button class="btn ghost" id="ac-salir">Salir del modo ${miPuesto() === LOGI ? 'Logística' : 'almacén'}</button></div>
+      </div>
+      ${personas && yo ? `<div class="card"><div class="card-t">${icon('userCheck')} Personas de ${esc(miPuesto())}</div>
+        <p class="muted" style="margin:-6px 0 4px">Puedes dar de alta a un compañero de este puesto. Para cambiarle el PIN o quitarlo, habla con el administrador.</p>
+        <div id="co-list"></div>
+        <div id="co-form" class="per-form" hidden>
+          <div class="fields" style="margin:0">
+            <div><label class="l">Nombre y apellido</label><input id="co-nom" autocomplete="off"></div>
+            <div><label class="l">PIN personal <i>(4 a 8 cifras)</i></label><div class="row-in"><input id="co-pin" inputmode="numeric" autocomplete="off" style="text-transform:none"><button type="button" class="btn ghost" id="co-gen">Generar</button></div></div>
+          </div>
+          <div class="btns" style="margin-top:12px"><button type="button" class="btn" id="co-ok">${icon('check')} Dar de alta</button><button type="button" class="btn ghost" id="co-cancel">Cancelar</button></div>
+        </div>
+        <button type="button" class="btn ghost" id="co-add" style="width:100%;margin-top:6px">${icon('plus')} Añadir compañero</button>
+      </div>` : ''}`;
+    else acceso = `
+      <div class="card"><div class="card-t">${icon('lock')} Administrador</div>
+        <p class="muted" style="margin:-6px 0 12px">Puedes hacer cualquier paso desde cualquier sitio y configurar la app.</p>
+        <button class="btn ghost" id="ac-salir">Salir del modo administrador</button></div>`;
+  }
+  const cardPersonas = adm && nube ? `
+  <div class="card"><div class="card-t">${icon('userCheck')} Personas de almacén, recepción y Logística</div>
+    <p class="muted" style="margin:-6px 0 4px">Cada persona entra con su nombre y su PIN personal. Da de alta tú a la primera de cada puesto; después, cualquiera de ese puesto puede añadir a sus compañeros. Si la borras o le cambias el PIN, se le cierra la sesión en su aparato al momento.</p>
+    ${personas ? '' : `<div class="warn" id="per-warn">${icon('alert')}<div>Ahora se entra con el PIN común de almacén. En cuanto des de alta a la primera persona, el PIN común deja de valer y cada uno entra con el suyo.</div></div>`}
+    <div id="per-list"></div>
+    <div id="per-form" class="per-form" hidden>
+      <input type="hidden" id="pf-id">
+      <div class="fields" style="margin:0">
+        <div><label class="l">Nombre y apellido</label><input id="pf-nom" autocomplete="off"></div>
+        <div><label class="l">Puestos donde trabaja</label><div class="pu-checks" id="pf-pu">${puestosTodos().map(p => `<label><input type="checkbox" value="${esc(p)}"> ${esc(p)}</label>`).join('')}</div></div>
+        <div><label class="l" id="pf-pin-l">PIN personal <i>(4 a 8 cifras)</i></label><div class="row-in"><input id="pf-pin" inputmode="numeric" autocomplete="off" style="text-transform:none"><button type="button" class="btn ghost" id="pf-gen">Generar</button></div></div>
+      </div>
+      <div class="btns" style="margin-top:12px"><button type="button" class="btn" id="pf-ok">${icon('check')} Guardar persona</button><button type="button" class="btn ghost" id="pf-cancel">Cancelar</button></div>
+    </div>
+    <button type="button" class="btn ghost" id="per-add" style="width:100%;margin-top:6px">${icon('plus')} Añadir persona</button>
+  </div>
+  <div class="card"><div class="card-t">${icon('lock')} Seguridad</div>
+    <dl class="kv" style="margin:0 0 12px">
+      <dt>PIN común de almacén</dt><dd id="seg-comun">${personas ? 'Desactivado: cada persona entra con el suyo' : 'Activo hasta que des de alta a la primera persona'}</dd>
+      <dt>PIN de administrador</dt><dd>${SEG.adminHash ? 'Cambiado desde la app' : 'El que viene en el archivo de la app'}</dd>
+    </dl>
+    <button type="button" class="btn ghost" id="seg-adm">${icon('lock')} Cambiar PIN de administrador</button>
+  </div>` : '';
+  $('#app').innerHTML = `<div class="h1">Ajustes</div><p class="sub">${adm ? 'Los puestos, sedes y edificios se comparten con todos los aparatos.' : 'Se guardan en este dispositivo.'}</p>
+  <div class="card"><div class="card-t">Tú</div>
+    <div class="fields" style="margin:0">
+      <div><label class="l">Tu nombre <i>(se propone al crear un envío)</i></label><input id="s-usr" value="${esc(cfg.usuario)}" placeholder="Nombre y apellido"></div>
+      <div><label class="l">Tamaño de impresión de la etiqueta</label><select id="s-et"><option value="100x70" ${cfg.etiqueta !== 'A4' ? 'selected' : ''}>Etiqueta adhesiva 100 × 70 mm</option><option value="A4" ${cfg.etiqueta === 'A4' ? 'selected' : ''}>Folio A4 (para recortar)</option></select></div>
+    </div>
+  </div>
+  ${acceso}
+  ${adm || esLogistica() ? cardReglas() : ''}
+  ${adm ? `
+  <div class="card"><div class="card-t">Puestos de almacén y recepción</div>
+    <p class="muted" style="margin:-6px 0 12px">Cada puesto con su sede, su edificio y si es almacén o recepción. Pulsa «Añadir puesto», rellena y luego «Guardar ajustes».</p>
+    <datalist id="sedes-a">${(cfg.sedes || []).map(x => `<option value="${esc(x)}">`).join('')}</datalist>
+    <div class="pu-row pu-head"><span>Sede</span><span>Edificio</span><span>Tipo</span><span></span></div>
+    <div id="pu-list">${(cfg.puestos || []).map(p => { const P = parsePuesto(p); return filaPuesto(P.se, P.ed, P.pu); }).join('')}</div>
+    <button type="button" class="btn ghost" id="pu-add" style="width:100%;margin-top:4px">${icon('plus')} Añadir puesto</button>
+  </div>
+  ${cardPersonas}
+  <div class="card"><div class="card-t">Empresa, sedes y edificios</div>
+    <div class="fields" style="margin:0">
+      <div><label class="l">Nombre que sale en la etiqueta</label><input id="s-emp" value="${esc(cfg.empresa)}"${nf('empresa')}></div>
+      <div class="grid2">
+        <div><label class="l">Sedes <i>(una por línea)</i></label><textarea id="s-se"${nf('sedes')}>${esc((cfg.sedes || []).join('\n'))}</textarea></div>
+        <div><label class="l">Edificios <i>(uno por línea)</i></label><textarea id="s-ed"${nf('edificios')}>${esc((cfg.edificios || []).join('\n'))}</textarea></div>
+      </div>
+    </div>
+  </div>
+  ${nube ? '' : fijo('pin') && fijo('pinAdmin') && fijo('pinLog') ? `<div class="card"><div class="card-t">PINs</div><p class="muted" style="margin:0">Los PIN de almacén, Logística y administrador están fijados en el archivo de la app (CONFIG_FIJA).</p></div>` : `<div class="card"><div class="card-t">PINs <i class="muted" style="font-weight:400;font-size:13px">(solo en este aparato)</i></div>
+    <div class="grid2">
+      <div><label class="l">PIN de almacén</label><input id="s-pin" value="${esc(cfg.pin)}"${nf('pin')} inputmode="numeric" placeholder="Sin PIN"></div>
+      <div><label class="l">PIN de Logística</label><input id="s-pinlog" value="${esc(cfg.pinLog)}"${nf('pinLog')} inputmode="numeric" placeholder="Sin PIN"></div>
+      <div><label class="l">PIN de administrador</label><input id="s-pinad" value="${esc(cfg.pinAdmin)}"${nf('pinAdmin')} inputmode="numeric" placeholder="Sin PIN"></div>
+    </div>
+    <p class="small" style="margin-top:8px">Para toda la empresa se ponen en el archivo (CONFIG_FIJA).</p>
+  </div>`}
+  <div class="card"><div class="card-t">Publicación</div>
+    <label class="l">Dirección de la app <i>(la que llevará el QR)</i></label><input id="s-url"${nf('baseUrl')} value="${esc(cfg.baseUrl)}" placeholder="${esc(webReal() ? location.origin + location.pathname : 'https://ezguum-zuri.github.io/logistica/')}">
+    <p class="small" style="margin-top:8px">Si lo dejas vacío se usa la dirección actual.</p>
+  </div>
+  ${fijo('firebase') ? `<div class="card"><div class="card-t">Datos compartidos</div><p class="muted" style="margin:0">Conexión configurada por la empresa. No hay que hacer nada aquí.</p></div>` : `<div class="card"><div class="card-t">Datos compartidos (Firebase)</div>
+    <p class="muted" style="margin:-6px 0 12px">Sin esto, cada dispositivo guarda sus propios envíos. Pega aquí la configuración web de tu proyecto de Firebase (el bloque <code>firebaseConfig = {…}</code>).</p>
+    <textarea id="s-fb" style="min-height:120px;font-family:ui-monospace,monospace;font-size:13px" placeholder='{ apiKey: "...", authDomain: "...", projectId: "...", ... }'>${esc(cfg.firebase)}</textarea>
+  </div>`}` : ''}
+  <div class="sticky-go"><button class="btn big" id="s-save">${icon('check')} Guardar ajustes</button></div>
+  ${adm ? `<div class="card" style="margin-top:14px"><div class="card-t">Copia de seguridad</div>
+    <p class="muted" style="margin:-6px 0 12px">Solo para los envíos guardados en este equipo (modo sin Firebase).</p>
+    <div class="btns"><button class="btn ghost" id="s-exp">${icon('download')} Exportar</button><label class="btn ghost" style="margin:0">Importar<input type="file" id="s-imp" accept=".json" hidden></label></div>
+  </div>` : ''}`;
+  bindReglas();
+  if($('#pu-list')){
+    const bindDel = () => document.querySelectorAll('.pu-del').forEach(b => b.onclick = () => b.parentNode.remove());
+    $('#pu-add').onclick = () => { $('#pu-list').insertAdjacentHTML('beforeend', filaPuesto()); bindDel(); $('#pu-list').lastElementChild.querySelector('input').focus(); };
+    bindDel();
+  }
+  const refresco = (msg, arriba) => { if(msg) toast(msg); pintaModo(); pintaNav('ajustes'); vAjustes(); if(arriba) window.scrollTo(0, 0); };
+  if($('#ac-alm')){
+    const llenaUsers = () => {
+      const sel = $('#ac-user'); if(!sel) return;
+      const l = USERS.filter(u => (u.puestos || []).includes($('#ac-puesto').value));
+      sel.innerHTML = l.length ? '<option value="">Elige tu nombre…</option>' + l.map(u => `<option value="${esc(u.id)}">${esc(u.nombre)}</option>`).join('') : '<option value="">Nadie dado de alta en este puesto</option>';
+      sel.disabled = !l.length;
+    };
+    if($('#ac-user')){ $('#ac-puesto').onchange = llenaUsers; llenaUsers(); }
+    const entrar = async () => {
+      if(bloqueado()) return;
+      const pin = $('#ac-pin').value.replace(/\D/g, ''), puesto = $('#ac-puesto').value;
+      if(usaPersonas()){
+        const u = userDe($('#ac-user').value);
+        if(!u){ toast($('#ac-user').disabled ? 'Pide a un compañero de este puesto o al administrador que te dé de alta' : 'Elige tu nombre'); return; }
+        if(await hashPin(u.id, pin) !== u.pinHash){ fallo(); $('#ac-pin').select(); return; }
+        acierto(); LS.set('log_rol', { rol:'almacen', uid:u.id, nombre:u.nombre, puesto, h:u.pinHash });
+        if(!cfg.usuario){ cfg.usuario = u.nombre; saveCfg(); }
+        Cloud.db.collection(C.usuarios).doc(u.id).set({ ultimoAcceso:Date.now() }, { merge:true }).catch(() => {});
+        refresco('Hola, ' + u.nombre.split(' ')[0] + ' · ' + puesto);
+      } else if(pin && pin === (puesto === LOGI ? cfg.pinLog : cfg.pin)){ acierto(); LS.set('log_rol', { rol:'almacen', pin, puesto }); refresco((puesto === LOGI ? 'Modo Logística' : 'Modo almacén: ' + puesto)); }
+      else { fallo(); $('#ac-pin').select(); }
+    };
+    $('#ac-alm').onclick = entrar; $('#ac-pin').onkeydown = ev => { if(ev.key === 'Enter') entrar(); };
+  }
+  if($('#ac-adm')){
+    const entrar = async () => {
+      if(bloqueado()) return;
+      const pin = $('#ad-pin').value.replace(/\D/g, '');
+      if(SEG.adminHash){
+        const h = await hashPin('admin', pin);
+        if(h !== SEG.adminHash){ fallo(); $('#ad-pin').select(); return; }
+        acierto(); LS.set('log_rol', { rol:'admin', h });
+      } else if(pin && pin === cfg.pinAdmin){ acierto(); LS.set('log_rol', { rol:'admin', pin:cfg.pinAdmin }); }
+      else { fallo(); $('#ad-pin').select(); return; }
+      refresco('Modo administrador: ya puedes editar puestos y personas', true);
+    };
+    $('#ac-adm').onclick = entrar; $('#ad-pin').onkeydown = ev => { if(ev.key === 'Enter') entrar(); };
+  }
+  if($('#ac-cambia')) $('#ac-cambia').onchange = ev => { const r0 = LS.get('log_rol', {}); r0.puesto = ev.target.value; LS.set('log_rol', r0); refresco('Puesto: ' + ev.target.value); };
+  if($('#per-list')){
+    pintaPersonas();
+    const form = $('#per-form');
+    const abre = (u, soloPin) => {
+      form.hidden = false; $('#per-add').hidden = true;
+      $('#pf-id').value = u ? u.id : ''; $('#pf-nom').value = u ? u.nombre : ''; $('#pf-pin').value = '';
+      document.querySelectorAll('#pf-pu input').forEach(c => c.checked = !!u && (u.puestos || []).includes(c.value));
+      $('#pf-pin-l').innerHTML = u ? 'Nuevo PIN <i>(déjalo vacío para no cambiarlo)</i>' : 'PIN personal <i>(4 a 8 cifras)</i>';
+      form.scrollIntoView({ behavior:'smooth', block:'center' }); (soloPin ? $('#pf-pin') : $('#pf-nom')).focus();
+    };
+    const cierra = () => { form.hidden = true; $('#per-add').hidden = false; };
+    $('#per-add').onclick = () => abre(null);
+    $('#pf-cancel').onclick = cierra;
+    $('#pf-gen').onclick = () => { $('#pf-pin').value = nuevoPin(); };
+    $('#per-list').onclick = async ev => {
+      const b = ev.target.closest('button'); if(!b) return;
+      const u = userDe(b.dataset.id); if(!u) return;
+      if(b.dataset.a === 'ed') abre(u);
+      else if(b.dataset.a === 'pin') abre(u, true);
+      else if(b.dataset.a === 'del' && confirm(`¿Borrar a ${u.nombre}?\n\nSe le cerrará la sesión en su aparato y ya no podrá entrar. Los envíos que registró se quedan como están.`)){
+        try{ await Cloud.db.collection(C.usuarios).doc(u.id).delete(); toast(u.nombre + ' borrado'); }catch(err){ alert('No se pudo borrar: ' + err.message); }
+      }
+    };
+    $('#pf-ok').onclick = async () => {
+      const id = $('#pf-id').value, nombre = $('#pf-nom').value.trim().replace(/\s+/g, ' '), pin = $('#pf-pin').value.replace(/\D/g, '');
+      const puestos = [...document.querySelectorAll('#pf-pu input:checked')].map(c => c.value);
+      if(!nombre){ toast('Escribe el nombre'); $('#pf-nom').focus(); return; }
+      if(!puestos.length){ toast('Marca al menos un puesto'); return; }
+      if((!id || pin) && !/^\d{4,8}$/.test(pin)){ toast('El PIN tiene que tener de 4 a 8 cifras'); $('#pf-pin').focus(); return; }
+      if(USERS.some(u => u.id !== id && norm(u.nombre) === norm(nombre))){ toast('Ya hay una persona con ese nombre'); return; }
+      const b = $('#pf-ok'); b.disabled = true;
+      try{
+        const ref = id ? Cloud.db.collection(C.usuarios).doc(id) : Cloud.db.collection(C.usuarios).doc();
+        const d = { nombre, puestos, actualizado:Date.now() };
+        if(!id) d.creado = Date.now();
+        if(pin) d.pinHash = await hashPin(ref.id, pin);
+        await ref.set(d, { merge:true });
+        if(!SEG.modoPersonas) await Cloud.db.collection(C.config).doc('seguridad').set({ modoPersonas:true }, { merge:true });
+        cierra();
+        if(pin) alert(`${id ? 'Nuevo PIN' : 'PIN'} de ${nombre}: ${pin}\n\nDáselo en persona. No se puede volver a ver; si lo olvida, cámbialo desde aquí.`);
+        else toast('Guardado');
+      }catch(err){ alert('No se pudo guardar: ' + err.message); }
+      b.disabled = false;
+    };
+  }
+  if($('#co-list')){
+    pintaCompas();
+    const form = $('#co-form');
+    const cierra = () => { form.hidden = true; $('#co-add').hidden = false; };
+    $('#co-add').onclick = () => { form.hidden = false; $('#co-add').hidden = true; $('#co-nom').value = ''; $('#co-pin').value = ''; $('#co-nom').focus(); };
+    $('#co-cancel').onclick = cierra;
+    $('#co-gen').onclick = () => { $('#co-pin').value = nuevoPin(); };
+    $('#co-ok').onclick = async () => {
+      const puesto = miPuesto(), r0 = LS.get('log_rol', {}) || {}, yo = userDe(r0.uid);
+      if(rol() !== 'almacen' || !yo){ toast('Vuelve a entrar en tu puesto'); return; }
+      const nombre = $('#co-nom').value.trim().replace(/\s+/g, ' '), pin = $('#co-pin').value.replace(/\D/g, '');
+      if(!nombre){ toast('Escribe el nombre'); $('#co-nom').focus(); return; }
+      const ya = USERS.find(u => norm(u.nombre) === norm(nombre));
+      if(ya && (ya.puestos || []).includes(puesto)){ toast(ya.nombre + ' ya está en este puesto'); return; }
+      if(!ya && !/^\d{4,8}$/.test(pin)){ toast('El PIN tiene que tener de 4 a 8 cifras'); $('#co-pin').focus(); return; }
+      if(ya && !confirm(`${ya.nombre} ya está dado de alta en otro puesto.\n\n¿Añadirle también ${puesto}? Seguirá entrando con su PIN de siempre.`)) return;
+      const b = $('#co-ok'); b.disabled = true;
+      try{
+        const por = { uid:yo.id, nombre:yo.nombre, puesto, ts:Date.now() };
+        if(ya){
+          await Cloud.db.collection(C.usuarios).doc(ya.id).set({ puestos:[...(ya.puestos || []), puesto], actualizado:Date.now(), ampliadoPor:por }, { merge:true });
+          cierra(); toast(ya.nombre + ' añadido a ' + puesto);
+        } else {
+          const ref = Cloud.db.collection(C.usuarios).doc();
+          await ref.set({ nombre, puestos:[puesto], pinHash:await hashPin(ref.id, pin), creado:Date.now(), actualizado:Date.now(), altaPor:por });
+          cierra(); alert(`PIN de ${nombre}: ${pin}\n\nDáselo en persona. No se puede volver a ver; si lo olvida, el administrador se lo cambia.`);
+        }
+      }catch(err){ alert('No se pudo guardar: ' + err.message); }
+      b.disabled = false;
+    };
+  }
+  if($('#seg-adm')) $('#seg-adm').onclick = async () => {
+    const p1 = prompt('Nuevo PIN de administrador (de 6 a 8 cifras):'); if(p1 === null) return;
+    const pin = p1.replace(/\D/g, '');
+    if(!/^\d{6,8}$/.test(pin)){ alert('El PIN de administrador tiene que tener de 6 a 8 cifras.'); return; }
+    if(prompt('Repite el nuevo PIN:') !== pin){ alert('No coinciden. No se ha cambiado.'); return; }
+    try{
+      const h = await hashPin('admin', pin);
+      LS.set('log_rol', { rol:'admin', h });
+      await Cloud.db.collection(C.config).doc('seguridad').set({ adminHash:h, adminCambiado:Date.now() }, { merge:true });
+      toast('PIN de administrador cambiado');
+    }catch(err){ alert('No se pudo cambiar: ' + err.message); }
+  };
+  if($('#ac-salir')) $('#ac-salir').onclick = () => { LS.set('log_rol', {}); refresco('Has salido'); };
+  $('#s-save').onclick = async () => {
+    const val = id => { const el = $(id); return el && !el.disabled ? el.value.trim() : null; };
+    const lista = id => val(id) === null ? null : val(id).split('\n').map(x => x.trim()).filter(Boolean);
+    const fbOld = cfg.firebase;
+    cfg.usuario = val('#s-usr') ?? cfg.usuario;
+    cfg.etiqueta = $('#s-et').value;
+    if(val('#s-emp') !== null) cfg.empresa = val('#s-emp') || 'Logística';
+    if(lista('#s-se')) cfg.sedes = lista('#s-se');
+    if(lista('#s-ed')) cfg.edificios = lista('#s-ed');
+    if($('#pu-list')){
+      const filas = [...document.querySelectorAll('#pu-list .pu-row')].map(r => [r.querySelector('.pu-se').value.trim(), r.querySelector('.pu-ed').value.trim(), r.querySelector('.pu-pu').value]).filter(([se]) => se);
+      cfg.puestos = filas.map(([se, ed, pu]) => textoPuesto(se, ed, pu));
+      // las sedes y edificios nuevos se añaden solos a las sugerencias
+      filas.forEach(([se, ed]) => {
+        if(!(cfg.sedes || []).some(x => norm(x) === norm(se))) cfg.sedes = [...(cfg.sedes || []), se];
+        if(ed && !(cfg.edificios || []).some(x => norm(x) === norm(ed))) cfg.edificios = [...(cfg.edificios || []), ed];
+      });
+    }
+    if(val('#s-url') !== null) cfg.baseUrl = val('#s-url');
+    if(val('#s-pin') !== null) cfg.pin = val('#s-pin');
+    if(val('#s-pinad') !== null) cfg.pinAdmin = val('#s-pinad');
+    if(val('#s-pinlog') !== null) cfg.pinLog = val('#s-pinlog');
+    if($('#ru-list')) leerReglas();
+    const fb = val('#s-fb') ?? cfg.firebase;
+    if(fb){ try{ parseFirebase(fb); }catch(err){ alert('La configuración de Firebase no es válida: ' + err.message); return; } }
+    cfg.firebase = fb; Object.assign(cfg, FIJO); saveCfg();
+    if((adm && $('#pu-list')) || $('#ru-list')){ try{ await guardarCompartida(); }catch(err){ alert('Se guardó en este aparato, pero no se pudo compartir: ' + err.message); } }
+    if(fb !== fbOld){ location.hash = '#/inicio'; location.reload(); return; }
+    refresco('Ajustes guardados');
+  };
+  if($('#s-exp')) $('#s-exp').onclick = () => {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ envios:LS.get('log_data',{}), contador:LS.get('log_cnt',{}) }, null, 1)], {type:'application/json'}));
+    a.download = 'envios-backup.json'; a.click();
+  };
+  if($('#s-imp')) $('#s-imp').onchange = async ev => {
+    try{ const d = JSON.parse(await ev.target.files[0].text()); LS.set('log_data', Object.assign(LS.get('log_data',{}), d.envios || {}));
+      const c = LS.get('log_cnt',{}); for(const y in d.contador || {}) c[y] = Math.max(c[y] || 0, d.contador[y]); LS.set('log_cnt', c); toast('Datos importados'); }
+    catch(err){ alert('Archivo no válido: ' + err.message); }
+  };
+}
+
+function pintaCompas(){
+  const box = $('#co-list'); if(!box) return;
+  const l = USERS.filter(u => (u.puestos || []).includes(miPuesto()));
+  box.innerHTML = l.length ? l.map(u => `<div class="per-row"><div><b>${esc(u.nombre)}</b><span class="t">${u.ultimoAcceso ? 'Último acceso: ' + corto(u.ultimoAcceso) : 'Todavía no ha entrado'}</span></div></div>`).join('')
+    : '<div class="t muted" style="font-size:13px;padding:4px 0">Nadie todavía</div>';
+}
+const textoAlta = u => u.altaPor ? `Alta: ${esc(u.altaPor.nombre)} · ${corto(u.altaPor.ts)}` : u.creado ? `Alta: administrador · ${corto(u.creado)}` : '';
+function pintaPersonas(){
+  pintaCompas();
+  const box = $('#per-list'); if(!box) return;
+  if(usaPersonas()){ if($('#per-warn')) $('#per-warn').remove(); if($('#seg-comun')) $('#seg-comun').textContent = 'Desactivado: cada persona entra con el suyo'; }
+  const grupos = puestosTodos().map(p => [p, USERS.filter(u => (u.puestos || []).includes(p))]);
+  const sin = USERS.filter(u => !(u.puestos || []).some(p => puestosTodos().includes(p)));
+  if(sin.length) grupos.push(['Sin puesto válido (revisar)', sin]);
+  box.innerHTML = grupos.map(([p, l]) => `<div class="per-g"><div class="per-h"><b>${esc(p)}</b><span class="muted">${l.length} ${l.length === 1 ? 'persona' : 'personas'}</span></div>
+    ${l.length ? l.map(u => `<div class="per-row"><div><b>${esc(u.nombre)}</b><span class="t">${u.ultimoAcceso ? 'Último acceso: ' + corto(u.ultimoAcceso) : 'Todavía no ha entrado'}</span>${textoAlta(u) ? `<span class="t">${textoAlta(u)}</span>` : ''}</div>
+      <button type="button" class="btn ghost sm" data-a="pin" data-id="${esc(u.id)}">Cambiar PIN</button><button type="button" class="btn ghost sm" data-a="ed" data-id="${esc(u.id)}">Editar</button><button type="button" class="btn ghost sm del" data-a="del" data-id="${esc(u.id)}">Borrar</button></div>`).join('')
+      : '<div class="t muted" style="font-size:13px;padding:4px 0">Nadie todavía</div>'}</div>`).join('');
+}
+
+/* ===== Ajustes de Logística: rutas, reglas y transportistas ===== */
+const opts = (l, sel) => l.map(([v, t]) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`).join('');
+const filaRuta = (r = {}) => { const al = ALMACENES().map(p => [p, p]); const o = x => opts(al.some(([v]) => v === x) || !x ? al : [[x, x], ...al], x);
+  return `<div class="ruta-row" data-id="${esc(r.id || 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5))}"><select class="ru-a w">${o(r.a)}</select><select class="ru-b w">${o(r.b)}</select><input class="ru-d" value="${esc(r.dias || 'L-V')}" placeholder="L-V"><input class="ru-h" value="${esc(r.hora || '')}" placeholder="10:00"><button type="button" class="btn ghost x" title="Quitar">✕</button></div>`; };
+const filaRegla = (r = {}) => `<div class="rule-row"><select class="rg-am w">${opts([['nacional','España'],['internacional','Internacional'],['cualquiera','Cualquiera']], r.ambito || 'nacional')}</select>
+  <select class="rg-pr">${opts([['cualquiera','Cualquier prioridad'],['normal','Normal'],['urgente','Urgente']], r.prio || 'cualquiera')}</select>
+  <input class="rg-kg" type="number" min="0" step="0.5" value="${esc(r.pesoMax || '')}" placeholder="Sin límite">
+  <select class="rg-tr">${opts([...(cfg.transportistas || []).map(t => [t.nombre, t.nombre]), ['Manual','Lo decide Logística']], r.trans || ((cfg.transportistas || [])[0] || {}).nombre)}</select>
+  <button type="button" class="btn ghost x" title="Quitar">✕</button></div>`;
+const filaTrans = (t = {}) => `<div class="car-row"><input class="tr-n" value="${esc(t.nombre || '')}" placeholder="Nombre"><input class="tr-u" value="${esc(t.url || '')}" placeholder="Web de seguimiento, con {n} donde va el número"><button type="button" class="btn ghost x" title="Quitar">✕</button></div>`;
+function cardReglas(){
+  return `<div class="card"><div class="card-t">${icon('bag')} Rutas de valija</div>
+    <p class="muted" style="margin:-6px 0 12px">Entre qué almacenes va la valija (vale en los dos sentidos), qué días (L M X J V S D; «L-V» o «L,X,V») y a qué hora sale. Los envíos internos entre dos almacenes con ruta se asignan solos a la valija.</p>
+    <div class="ruta-row hd" style="display:grid"><span>Almacén</span><span>Almacén</span><span>Días</span><span>Hora</span><span></span></div>
+    <div id="ru-list">${(cfg.rutas || []).map(filaRuta).join('')}</div>
+    <button type="button" class="btn ghost" id="ru-add" style="width:100%;margin-top:4px">${icon('plus')} Añadir ruta</button>
+    <div class="checks" style="margin-top:14px"><label><input type="checkbox" id="rg-urg" ${cfg.manualUrgInt ? 'checked' : ''}> Los urgentes internos los asigna Logística a mano</label></div>
+  </div>
+  <div class="card"><div class="card-t">${icon('truck')} Reglas para envíos fuera de la empresa</div>
+    <p class="muted" style="margin:-6px 0 12px">Se mira de arriba abajo y se aplica la primera que encaja. Si ninguna encaja, o el envío lleva algo especial (peligroso, frágil, gran volumen), lo asigna Logística a mano.</p>
+    <div class="rule-row hd" style="display:grid"><span>Destino</span><span>Prioridad</span><span>Peso hasta (kg)</span><span>Transportista</span><span></span></div>
+    <div id="rg-list">${(cfg.reglas || []).map(filaRegla).join('')}</div>
+    <button type="button" class="btn ghost" id="rg-add" style="width:100%;margin-top:4px">${icon('plus')} Añadir regla</button>
+  </div>
+  <div class="card"><div class="card-t">${icon('globe')} Transportistas</div>
+    <p class="muted" style="margin:-6px 0 12px">Nombre y página de seguimiento. Si pones <code>{n}</code> en la dirección, se abre directamente con el número del envío. Guarda antes de usarlos en las reglas.</p>
+    <div id="tr-list">${(cfg.transportistas || []).map(filaTrans).join('')}</div>
+    <button type="button" class="btn ghost" id="tr-add" style="width:100%;margin-top:4px">${icon('plus')} Añadir transportista</button>
+  </div>`;
+}
+function bindReglas(){
+  if(!$('#ru-list')) return;
+  const del = () => document.querySelectorAll('#ru-list .x, #rg-list .x, #tr-list .x').forEach(b => b.onclick = () => b.parentNode.remove());
+  $('#ru-add').onclick = () => { if(ALMACENES().length < 2){ toast('Primero crea al menos dos puestos de almacén'); return; } $('#ru-list').insertAdjacentHTML('beforeend', filaRuta()); del(); };
+  $('#rg-add').onclick = () => { $('#rg-list').insertAdjacentHTML('beforeend', filaRegla()); del(); };
+  $('#tr-add').onclick = () => { $('#tr-list').insertAdjacentHTML('beforeend', filaTrans()); del(); $('#tr-list').lastElementChild.querySelector('input').focus(); };
+  del();
+}
+function leerReglas(){
+  cfg.rutas = [...document.querySelectorAll('#ru-list .ruta-row')].map(r => ({ id:r.dataset.id, a:r.querySelector('.ru-a').value, b:r.querySelector('.ru-b').value, dias:r.querySelector('.ru-d').value.trim().toUpperCase(), hora:r.querySelector('.ru-h').value.trim() })).filter(r => r.a && r.b && r.a !== r.b);
+  cfg.reglas = [...document.querySelectorAll('#rg-list .rule-row')].map(r => ({ ambito:r.querySelector('.rg-am').value, prio:r.querySelector('.rg-pr').value, pesoMax:r.querySelector('.rg-kg').value.trim(), trans:r.querySelector('.rg-tr').value })).filter(r => r.trans);
+  cfg.transportistas = [...document.querySelectorAll('#tr-list .car-row')].map(r => ({ nombre:r.querySelector('.tr-n').value.trim(), url:r.querySelector('.tr-u').value.trim() })).filter(t => t.nombre);
+  cfg.manualUrgInt = $('#rg-urg').checked;
+}
+
+function filaPuesto(se = '', ed = '', pu = ''){
+  return `<div class="pu-row"><input class="pu-se" list="sedes-a" placeholder="Sede" value="${esc(se)}"><input class="pu-ed" placeholder="Edificio" value="${esc(ed)}"><select class="pu-pu"><option value="">Almacén</option><option ${pu ? 'selected' : ''}>Recepción</option></select><button type="button" class="btn ghost pu-del" title="Quitar" aria-label="Quitar">✕</button></div>`;
+}
+
+/* ===== Arranque ===== */
+document.getElementById('recargar').onclick = ev => { ev.currentTarget.classList.add('spin'); location.reload(); };
+(async () => { await initStore(); await cargarCompartida(); await cargarSeguridad(); if(Store === Cloud) marcaAcceso(); cfg.puestos = (cfg.puestos || []).map(fmtPuesto).filter(Boolean); pintaModo(); route(); })();
+</script>
+</body>
+</html>
