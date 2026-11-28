@@ -433,6 +433,7 @@ const IC = {
   lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  tag:'<path d="M12.59 2.59A2 2 0 0 0 11.17 2H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l8.7 8.7a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
   route:'<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',
   bag:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/>',
   globe:'<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20"/>',
@@ -451,6 +452,7 @@ const fmt = ts => new Date(ts).toLocaleString('es-ES',{day:'2-digit',month:'2-di
 const hora = ts => new Date(ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
 const corto = ts => { const d = new Date(ts), h = new Date(); return d.toDateString() === h.toDateString() ? hora(ts) : d.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'}) + ' ' + hora(ts); };
 const fmtId = (y, n) => `LOG-${y}-${String(n).padStart(6,'0')}`;
+const fmtExp = (y, n) => `EXP-${y}-${String(n).padStart(6,'0')}`;
 const lugar = o => o.externo ? [o.empresa, dirExt(o)].filter(Boolean).join(' · ') : [o.sede, o.edificio ? 'Edif. ' + o.edificio : '', o.punto, o.planta ? 'Pl. ' + o.planta : ''].filter(Boolean).join(' · ');
 const donde = o => o.externo ? [o.empresa, o.poblacion].filter(Boolean).join(' · ') : [o.sede, o.edificio, o.punto].filter(Boolean).join(' · ');
 const dirExt = o => [o.direccion, [o.cp, o.poblacion].filter(Boolean).join(' '), o.provincia, o.pais && norm(o.pais) !== 'espana' ? o.pais : ''].filter(Boolean).join(', ');
@@ -513,7 +515,7 @@ const pasoTxt = (e, k) => k === 'transito' ? (esRec(e) ? 'Recogida' : esExt(e) ?
 const labelDe = e => e.estado === 'transito' ? (esRec(e) ? 'En camino' : esExt(e) ? 'Expedido' : e.asig && e.asig.modo === 'valija' ? 'En la valija' : 'En tránsito') : ESTADOS[e.estado].label;
 const PASOS = {
   transito:  { titulo:e => esRec(e) ? 'Pedir la recogida a ' + (e.asig.trans || 'el transportista') : esExt(e) ? 'Expedir con ' + (e.asig.trans || 'el transportista') : e.asig.modo === 'valija' ? 'Cargar en la valija' : 'Dar salida',
-               texto:e => esRec(e) ? `Pide a ${e.asig.trans} que lo recoja en ${donde(e.origen)} y apunta su número de seguimiento.` : esExt(e) ? `Prepara el paquete en ${donde(e.origen)}, pega la etiqueta del transportista y apunta su número de seguimiento.` : e.asig.modo === 'valija' ? `Pulsa cuando el paquete salga de ${donde(e.origen)} en la valija.` : `Pulsa cuando el paquete salga de ${donde(e.origen)}.`,
+               texto:e => esRec(e) ? `Pide a ${e.asig.trans} que lo recoja en ${donde(e.origen)}. Al confirmar se genera el nº de expedición para ponerlo como referencia en ${e.asig.trans}.` : esExt(e) ? `Prepara el paquete en ${donde(e.origen)}. Al confirmar se genera el nº de expedición para ponerlo como referencia en ${e.asig.trans} y pegar su etiqueta.` : e.asig.modo === 'valija' ? `Pulsa cuando el paquete salga de ${donde(e.origen)} en la valija.` : `Pulsa cuando el paquete salga de ${donde(e.origen)}.`,
                boton:e => esRec(e) ? 'Recogida pedida' : esExt(e) ? 'Confirmar expedición' : e.asig.modo === 'valija' ? 'Cargado en la valija' : 'Confirmar salida' },
   recibido:  { titulo:() => 'Recibir en destino',       texto:e => `Pulsa cuando el paquete llegue a ${donde(e.destino)}.`,                   boton:() => 'Confirmar llegada' },
   entregado: { titulo:e => esExt(e) ? 'Confirmar la entrega' : 'Entregar al destinatario',
@@ -595,6 +597,7 @@ const Local = {
   all(){ return LS.get('log_data', {}); },
   put(e){ const a = this.all(); a[e.id] = e; LS.set('log_data', a); },
   async nextId(){ const y = new Date().getFullYear(); const c = LS.get('log_cnt', {}); c[y] = (c[y] || 0) + 1; LS.set('log_cnt', c); return fmtId(y, c[y]); },
+  async nextExp(){ const y = new Date().getFullYear(); const c = LS.get('log_cnt_exp', {}); c[y] = (c[y] || 0) + 1; LS.set('log_cnt_exp', c); return fmtExp(y, c[y]); },
   async save(e){ this.put(e); },
   async get(id){ return this.all()[id] || null; },
   async list(){ return Object.values(this.all()).sort((a,b) => b.creado - a.creado); },
@@ -609,6 +612,12 @@ const Cloud = {
     const ref = this.db.collection(C.contadores).doc('envios-' + y);
     const n = await this.db.runTransaction(async t => { const s = await t.get(ref); const n = (s.exists ? s.data().n : 0) + 1; t.set(ref, {n}); return n; });
     return fmtId(y, n);
+  },
+  async nextExp(){
+    const y = new Date().getFullYear();
+    const ref = this.db.collection(C.contadores).doc('expediciones-' + y);
+    const n = await this.db.runTransaction(async t => { const s = await t.get(ref); const n = (s.exists ? s.data().n : 0) + 1; t.set(ref, {n}); return n; });
+    return fmtExp(y, n);
   },
   async save(e){ await this.db.collection(C.envios).doc(e.id).set(e); },
   async get(id){ const s = await this.db.collection(C.envios).doc(id).get(); return s.exists ? s.data() : null; },
@@ -1026,7 +1035,7 @@ function vNuevo(ed = null){
     <div class="card"><div class="card-t"><span class="num">4</span>¿A quién se factura?</div>
       <div class="f">
         <div class="s2"><label class="l">Unidad de negocio</label><select name="unidad" required><option value="">Elige…</option>${(cfg.unidades || []).map(u => `<option ${(ed ? ed.unidad : LS.get('log_last_unidad', '')) === u ? 'selected' : ''}>${esc(u)}</option>`).join('')}${ed && ed.unidad && !(cfg.unidades || []).includes(ed.unidad) ? `<option selected>${esc(ed.unidad)}</option>` : ''}</select></div>
-        <div class="s2"><label class="l" id="l-ped">Nº de pedido <i>(sobre el que se factura)</i></label><input name="pedido" value="${esc(ed ? ed.pedido || '' : '')}" placeholder="Ej.: 4500123456" autocomplete="off"></div>
+        <div class="s2"><label class="l" id="l-ped">Nº de pedido o asunto</label><input name="pedido" value="${esc(ed ? ed.pedido || '' : '')}" placeholder="Ej.: 4500123456 o AI-0020" autocomplete="off"></div>
       </div>
       <p class="muted" style="margin:10px 0 0" id="m-ped"></p>
     </div>
@@ -1043,7 +1052,7 @@ function vNuevo(ed = null){
     F.o_se.required = F.o_pe.required = !y;
     ['y_emp','y_dir','y_cp','y_pob','y_pais'].forEach(n => F[n].required = y);
     F.pedido.required = x || y;
-    $('#l-ped').innerHTML = 'Nº de pedido ' + (x || y ? '<i>(obligatorio: va con transportista)</i>' : '<i>(opcional en envíos internos)</i>');
+    $('#l-ped').innerHTML = 'Nº de pedido o asunto ' + (x || y ? '<i>(obligatorio: va con transportista)</i>' : '<i>(opcional en envíos internos)</i>');
     $('#m-ped').textContent = x || y ? 'El transporte lo hace un transportista y se factura a esta unidad y este pedido.' : 'La valija interna no se factura por envío; la unidad sirve para el reparto y las estadísticas.';
   };
   F.querySelectorAll('input[name=ambito], input[name=origen]').forEach(r => r.onchange = pintaAmbito); pintaAmbito();
@@ -1167,7 +1176,14 @@ function bloqueAsig(e){
   const t = ultimo(e, 'transito');
   let det = '';
   if(a.modo === 'valija'){ const r = rutaDe(a.ruta), px = e.estado === 'asignado' ? proximaSalida(r) : ''; det = textoRuta(r) + (px ? ' · próxima salida ' + px : ''); }
-  else if(a.modo === 'transportista'){ const u = t.seguimiento ? urlSeguimiento(a.trans, t.seguimiento) : ''; det = t.seguimiento ? `Nº de seguimiento ${esc(t.seguimiento)}${u ? ` · <a href="${esc(u)}" target="_blank" rel="noopener">Ver en ${esc(a.trans)}</a>` : ''}` : (esRec(e) ? 'Pendiente de pedir la recogida' : 'Pendiente de expedir'); return `<div class="modo"><span class="ic">${icon('truck')}</span><div><b>${esc(a.trans)}</b><span>${det} · ${a.auto ? 'asignado por las reglas' : 'asignado por ' + esc(a.por)}</span></div></div>`; }
+  else if(a.modo === 'transportista'){
+    const u = t.seguimiento ? urlSeguimiento(a.trans, t.seguimiento) : '';
+    det = t.seguimiento ? `Nº de ${esc(a.trans)}: ${esc(t.seguimiento)}${u ? ` · <a href="${esc(u)}" target="_blank" rel="noopener">Ver seguimiento</a>` : ''}` : e.estado === 'transito' ? `Sin nº de ${esc(a.trans)} todavía` : (esRec(e) ? 'Pendiente de pedir la recogida' : 'Pendiente de expedir');
+    const puedeSeg = e.estado === 'transito' && !t.seguimiento && (esLogistica() || enPuesto(e.origen, miPuesto()) || enPuesto(e.destino, miPuesto()));
+    return `<div class="modo"><span class="ic">${icon('truck')}</span><div style="flex:1;min-width:0"><b>${esc(a.trans)}</b><span>${det} · ${a.auto ? 'asignado por las reglas' : 'asignado por ' + esc(a.por)}</span></div></div>
+      ${e.expedicion ? `<div class="modo" style="background:#fff7ed"><span class="ic" style="background:var(--c-transito)">${icon('tag')}</span><div style="flex:1;min-width:0"><b style="font-family:ui-monospace,Menlo,monospace">${esc(e.expedicion)}</b><span>Nº de expedición: ponlo como referencia en ${esc(a.trans)}</span></div><button class="btn ghost" id="b-exp" style="padding:10px 12px">${icon('link')} Copiar</button></div>` : ''}
+      ${puedeSeg ? `<div class="grid2" style="margin-top:10px;align-items:end"><div><label class="l">Nº de envío que da ${esc(a.trans)}</label><input id="seg-add" autocomplete="off" placeholder="Cuando lo tengas"></div><button class="btn sec" id="seg-save">${icon('check')} Guardar nº</button></div>` : ''}`;
+  }
   else det = a.quien ? 'Lo lleva ' + a.quien : 'Lo lleva una persona';
   return `<div class="modo"><span class="ic">${icon(iconAsig(a))}</span><div><b>${a.modo === 'valija' ? 'Valija' : 'En mano'}</b><span>${esc(det)} · ${a.auto ? 'asignado por las reglas' : 'asignado por ' + esc(a.por)}</span></div></div>`;
 }
@@ -1259,6 +1275,7 @@ async function vFicha(id, nuevo){
   const hist = e.historial.slice().reverse().map(h => `<li style="--c:${col(h.estado)}"><span class="d">${icon(ESTADOS[h.estado].icon)}</span><div>
       <b>${esc(h.estado === 'solicitado' ? 'Envío solicitado' : h.estado === 'asignado' ? 'Transporte: ' + (h.lugar || '') : pasoTxt(e, h.estado))}</b> <span class="t">· ${fmt(h.ts)}</span>
       <div class="t">${verbo(h)} ${esc(h.por)}${h.lugar && h.estado !== 'asignado' ? ' · ' + esc(h.lugar) : ''}</div>
+      ${h.expedicion ? `<div class="t">Nº de expedición ${esc(h.expedicion)}</div>` : ''}
       ${h.seguimiento ? `<div class="t">Nº de seguimiento ${esc(h.seguimiento)}</div>` : ''}
       ${h.viaje ? `<div class="t">Valija ${esc(h.viaje)}</div>` : ''}
       ${h.registra && h.registra !== h.por ? `<div class="t">Registrado por ${esc(h.registra)}</div>` : ''}
@@ -1284,7 +1301,7 @@ async function vFicha(id, nuevo){
         <div><small>Para</small><b>${esc(donde(dest))}</b><span>${esc(dest.persona || '')}</span></div>
       </div>
       ${bloqueAsig(e)}
-      ${e.unidad ? `<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"><span class="tag">${esc(e.unidad)}</span>${e.pedido ? `<span class="tag">Pedido ${esc(e.pedido)}</span>` : porTrans(e) ? '<span class="badge urg">Falta nº de pedido</span>' : ''}</div>` : ''}
+      ${e.unidad ? `<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"><span class="tag">${esc(e.unidad)}</span>${e.pedido ? `<span class="tag">${esc(e.pedido)}</span>` : porTrans(e) ? '<span class="badge urg">Falta pedido o asunto</span>' : ''}</div>` : ''}
       <div class="follow btns">${!alm && !(e.estado === 'entregado' && !sigo(e.id)) ? '<button class="btn ghost" id="b-follow"></button>' : ''}${puedeEditar(e) ? `<a class="btn ghost" href="#/editar/${encodeURIComponent(e.id)}">${icon('edit')} Modificar</a>` : ''}</div>
     </div>
     ${nuevo ? '' : accion}
@@ -1302,7 +1319,7 @@ async function vFicha(id, nuevo){
       <dt>Origen</dt><dd>${esc(lugar(e.origen))}<br><span class="muted">${esc(e.origen.persona)}${e.origen.telefono ? ' · ' + esc(e.origen.telefono) : ''}${e.origen.horario ? ' · ' + esc(e.origen.horario) : ''}</span>${e.origen.referencia ? `<br><span class="muted">Ref. ${esc(e.origen.referencia)}</span>` : ''}</dd>
       <dt>Destino</dt><dd>${esc(lugar(dest))}<br><span class="muted">${esc(dest.persona || '')}${dest.telefono ? ' · ' + esc(dest.telefono) : ''}${dest.email ? ' · ' + esc(dest.email) : ''}</span></dd>
       <dt>Transporte</dt><dd>${esc(textoAsig(e))}</dd>
-      <dt>Factura a</dt><dd>${esc(e.unidad || '—')}${e.pedido ? ' · pedido ' + esc(e.pedido) : porTrans(e) ? ' · <b style="color:var(--urg)">falta el nº de pedido</b>' : ''}${e.facturado ? `<br><span class="muted">Incluido en la facturación de ${esc(e.facturado)}</span>` : ''}</dd>
+      <dt>Factura a</dt><dd>${esc(e.unidad || '—')}${e.pedido ? ' · ' + esc(e.pedido) : porTrans(e) ? ' · <b style="color:var(--urg)">falta el pedido o asunto</b>' : ''}${e.facturado ? `<br><span class="muted">Incluido en la facturación de ${esc(e.facturado)}</span>` : ''}</dd>
       <dt>Contenido</dt><dd>${esc(e.tipo)}${e.descripcion ? ' – ' + esc(e.descripcion) : ''}</dd>
       <dt>Bultos</dt><dd>${e.bultos}${e.peso ? ' · ' + String(e.peso).replace('.', ',') + ' kg' : ''}</dd>
       ${(e.especial || []).length ? `<dt>Especial</dt><dd>${e.especial.map(k => esc(ESPECIAL[k] || k)).join(', ')}</dd>` : ''}
@@ -1316,6 +1333,13 @@ async function vFicha(id, nuevo){
   if($('#b-follow')) $('#b-follow').onclick = () => { if(sigo(e.id)){ dejar(e.id); toast('Ya no lo sigues'); } else { seguir(e.id); toast('Lo verás en Mis envíos'); } pintaFollow(); };
   if($('#as-go')) bindAsig(e);
   if(!puede && !$('#as-go')) unsubs.push(Store.watch([e.id], l => { if(l[0] && l[0].actualizado !== e.actualizado){ toast('Estado actualizado: ' + labelDe(l[0])); vFicha(e.id); } }));
+  if($('#b-exp')) $('#b-exp').onclick = async () => { try{ await navigator.clipboard.writeText(e.expedicion); toast('Copiado: ' + e.expedicion); }catch(_){ prompt('Copia el nº de expedición:', e.expedicion); } };
+  if($('#seg-save')) $('#seg-save').onclick = async () => {
+    const v = $('#seg-add').value.trim(); if(!v){ $('#seg-add').focus(); return; }
+    try{ await Store.update(e.id, cur => { const h = [...cur.historial].reverse().find(x => x.estado === 'transito'); if(h) h.seguimiento = v; cur.actualizado = Date.now(); return cur; }); toast('Nº de seguimiento guardado'); }
+    catch(err){ alert(err.message); }
+    vFicha(e.id);
+  };
   $('#b-copy').onclick = async () => { try{ await navigator.clipboard.writeText(urlEnvio(e.id)); toast('Enlace copiado'); }catch(_){ prompt('Copia el enlace:', urlEnvio(e.id)); } };
   if(puede){
     const sig = nx === 'entregado' && !ext ? firmaPad($('#sig')) : null;
@@ -1324,14 +1348,14 @@ async function vFicha(id, nuevo){
     $('#a-go').onclick = async () => {
       const sel = $('#a-por-sel'), por = (sel && sel.value !== '__otro' ? sel.value : $('#a-por').value).trim();
       if(!por){ toast(sel && sel.value === '' ? 'Elige quién lo registra' : nx === 'transito' ? 'Escribe quién se lleva el paquete' : 'Escribe el nombre'); (sel && sel.value === '' ? sel : $('#a-por')).focus(); return; }
-      const ev = { estado:nx, ts:Date.now(), por, nota:$('#a-nota').value.trim() };
+      const ev = { estado:nx, ts:Date.now(), por, nota:$('#a-nota').value.trim() }; let necesitaExp = false;
       const reg = rol() === 'admin' ? 'Administrador' : miNombre(); if(reg) ev.registra = reg;
       let extra = {};
       if(nx === 'transito'){
         ev.lugar = donde(e.origen);
-        if(porTrans(e) && !e.pedido){ alert('Falta el nº de pedido para facturar. Pulsa «Modificar» y añádelo antes de dar la salida.'); return; }
+        if(porTrans(e) && !e.pedido){ alert('Falta el nº de pedido o asunto para facturar. Pulsa «Modificar» y añádelo antes de dar la salida.'); return; }
         if($('#a-seg')){
-          ev.seguimiento = $('#a-seg').value.trim();
+          ev.seguimiento = $('#a-seg').value.trim(); necesitaExp = true;
 
           extra = { bultos:Math.max(1, Number($('#a-bul').value) || e.bultos), peso:Number(String($('#a-peso').value).replace(',', '.')) || e.peso || 0 };
         }
@@ -1345,6 +1369,7 @@ async function vFicha(id, nuevo){
       }
       const b = $('#a-go'); b.disabled = true; b.textContent = 'Guardando…';
       try{
+        if(necesitaExp && !e.expedicion){ ev.expedicion = extra.expedicion = await Store.nextExp(); }
         await Store.update(e.id, cur => {
           if(cur.estado !== e.estado) throw new Error('Otra persona ya actualizó este envío (' + labelDe(cur) + ').');
           Object.assign(cur, extra); cur.historial.push(ev); cur.estado = nx; cur.actualizado = ev.ts; return cur;
@@ -1393,7 +1418,7 @@ async function vLista(){
     const num = /^\d{1,6}$/.test(q) ? Number(q) : null;
     const l = todos.filter(e => {
       if(num !== null) return Number(e.id.slice(-6)) === num;   // número de envío: busca ese envío exacto, en cualquier estado
-      if(q){ const t = [e.id, e.origen.persona, e.origen.sede, e.origen.edificio, e.destino.persona, e.destino.sede, e.destino.edificio, e.destino.empresa, e.destino.poblacion, e.origen.empresa, e.origen.poblacion, e.origen.referencia, e.unidad, e.pedido, textoAsig(e), (ultimo(e, 'transito').seguimiento || ''), e.tipo, e.descripcion, ...e.historial.map(h => h.por + ' ' + (h.receptor || ''))].join(' ').toLowerCase(); return t.includes(q); }  // texto: en todos los estados
+      if(q){ const t = [e.id, e.origen.persona, e.origen.sede, e.origen.edificio, e.destino.persona, e.destino.sede, e.destino.edificio, e.destino.empresa, e.destino.poblacion, e.origen.empresa, e.origen.poblacion, e.origen.referencia, e.unidad, e.pedido, e.expedicion, textoAsig(e), (ultimo(e, 'transito').seguimiento || ''), e.tipo, e.descripcion, ...e.historial.map(h => h.por + ' ' + (h.receptor || ''))].join(' ').toLowerCase(); return t.includes(q); }  // texto: en todos los estados
       if(filtro.estado === 'activos' && e.estado === 'entregado') return false;
       if(filtro.estado === 'urgentes' && !(e.prioridad === 'urgente' && e.estado !== 'entregado')) return false;
       if(ESTADOS[filtro.estado] && e.estado !== filtro.estado) return false;
@@ -1418,9 +1443,9 @@ async function vLista(){
 }
 function exportCSV(l){
   const f = ts => ts ? fmt(ts) : '';
-  const cols = ['ID','Unidad de negocio','Nº pedido','Estado','Prioridad','Fecha','Origen sede','Origen edificio','Origen planta','Envía','Destino','Destino dirección','Recibe','Transporte','Asignado por','Nº seguimiento','Tipo','Descripción','Bultos','Peso kg','Salida','Salida por','Recibido','Recibido por','Entregado','Entregado a'];
+  const cols = ['ID','Nº expedición','Unidad de negocio','Pedido / asunto','Estado','Prioridad','Fecha','Origen sede','Origen edificio','Origen planta','Envía','Destino','Destino dirección','Recibe','Transporte','Asignado por','Nº seguimiento','Tipo','Descripción','Bultos','Peso kg','Salida','Salida por','Recibido','Recibido por','Entregado','Entregado a'];
   const rows = l.map(e => { const t = ultimo(e,'transito'), r = ultimo(e,'recibido'), d = ultimo(e,'entregado');
-    return [e.id, e.unidad || '', e.pedido || '', labelDe(e), e.prioridad, f(e.fecha), esRec(e) ? donde(e.origen) : e.origen.sede || '', esRec(e) ? dirExt(e.origen) : e.origen.edificio, e.origen.planta || '', e.origen.persona, donde(e.destino), esExt(e) ? dirExt(e.destino) : lugar(e.destino), e.destino.persona, textoAsig(e), e.asig ? (e.asig.auto ? 'Reglas' : e.asig.por) : '', t.seguimiento || '', e.tipo, e.descripcion, e.bultos, e.peso ? String(e.peso).replace('.', ',') : '', f(t.ts), t.por || '', f(r.ts), r.por || '', f(d.ts), d.receptor || '']; });
+    return [e.id, e.expedicion || '', e.unidad || '', e.pedido || '', labelDe(e), e.prioridad, f(e.fecha), esRec(e) ? donde(e.origen) : e.origen.sede || '', esRec(e) ? dirExt(e.origen) : e.origen.edificio, e.origen.planta || '', e.origen.persona, donde(e.destino), esExt(e) ? dirExt(e.destino) : lugar(e.destino), e.destino.persona, textoAsig(e), e.asig ? (e.asig.auto ? 'Reglas' : e.asig.por) : '', t.seguimiento || '', e.tipo, e.descripcion, e.bultos, e.peso ? String(e.peso).replace('.', ',') : '', f(t.ts), t.por || '', f(r.ts), r.por || '', f(d.ts), d.receptor || '']; });
   const csv = '﻿' + [cols, ...rows].map(r => r.map(v => '"' + String(v ?? '').replace(/"/g,'""') + '"').join(';')).join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
   a.download = 'logistica-' + new Date().toISOString().slice(0,10) + '.csv'; a.click();
@@ -1509,8 +1534,8 @@ async function vFacturacion(){
     ${!l.length ? `<div class="empty"><div class="ic">${icon('package')}</div>No hay envíos en ${esc(nomMes(factMes))}.</div>` : unidades.map(u => {
       const peds = grupos[u], todosU = Object.values(peds).flat(), fact = todosU.every(e => e.facturado === factMes);
       return `<div class="card"><div class="vg-h"><div class="card-t" style="margin:0">${esc(u)}</div><span class="muted">${resumen(suma(todosU))}</span></div>
-        ${Object.keys(peds).sort().map(pd => `<div class="vg"><div class="vg-h"><b style="${pd === 'Sin pedido' ? 'color:var(--urg)' : ''}">${pd === 'Sin pedido' ? 'Sin nº de pedido' : 'Pedido ' + esc(pd)}</b><span class="muted">${resumen(suma(peds[pd]))}</span></div>
-          ${peds[pd].map(e => { const t = ultimo(e, 'transito'); return `<div class="vrow"><div><a href="#/envio/${encodeURIComponent(e.id)}">${esc(e.id)}</a> <span class="tag">${esc(textoAsig(e))}</span>${t.seguimiento ? ` <span class="muted">nº ${esc(t.seguimiento)}</span>` : ''}
+        ${Object.keys(peds).sort().map(pd => `<div class="vg"><div class="vg-h"><b style="${pd === 'Sin pedido' ? 'color:var(--urg)' : ''}">${pd === 'Sin pedido' ? 'Sin pedido ni asunto' : esc(pd)}</b><span class="muted">${resumen(suma(peds[pd]))}</span></div>
+          ${peds[pd].map(e => { const t = ultimo(e, 'transito'); return `<div class="vrow"><div><a href="#/envio/${encodeURIComponent(e.id)}">${esc(e.id)}</a> <span class="tag">${esc(textoAsig(e))}</span>${e.expedicion ? ` <span class="tag">${esc(e.expedicion)}</span>` : ''}${t.seguimiento ? ` <span class="muted">nº ${esc(t.seguimiento)}</span>` : ''}
             <small>${corto(t.ts)} · ${esc(donde(e.origen))} → ${esc(donde(e.destino))} · ${e.bultos} bulto${e.bultos > 1 ? 's' : ''}${e.peso ? ' · ' + fkg(e.peso) : ''}</small></div>${e.facturado ? `<span class="badge" style="--c:var(--c-entregado)">Facturado</span>` : ''}</div>`; }).join('')}</div>`).join('')}
         <div class="btns" style="margin-top:10px"><button class="btn ${fact ? 'ghost' : ''} f-mark" data-u="${esc(u)}" ${u === 'Sin unidad' ? 'disabled' : ''}>${icon('check')} ${fact ? 'Quitar marca de facturado' : 'Marcar como facturado'}</button></div>
       </div>`; }).join('')}
@@ -1518,16 +1543,16 @@ async function vFacturacion(){
   $('#fm').onchange = ev => { factMes = ev.target.value; vFacturacion(); };
   $('#ft').onchange = ev => { factTodo = ev.target.value === '1'; vFacturacion(); };
   if($('#f-csv')) $('#f-csv').onclick = () => {
-    const cols = ['Mes','Unidad de negocio','Nº pedido','ID','Fecha salida','Transporte','Nº seguimiento','Origen','Destino','Destino dirección','Bultos','Peso kg','Facturado'];
+    const cols = ['Mes','Unidad de negocio','Pedido / asunto','Nº expedición','ID','Fecha salida','Transporte','Nº seguimiento','Origen','Destino','Destino dirección','Bultos','Peso kg','Facturado'];
     const rows = l.slice().sort((a, b) => String(a.unidad).localeCompare(String(b.unidad), 'es') || String(a.pedido).localeCompare(String(b.pedido)))
-      .map(e => { const t = ultimo(e, 'transito'); return [factMes, e.unidad || '', e.pedido || '', e.id, fmt(t.ts), textoAsig(e), t.seguimiento || '', donde(e.origen), donde(e.destino), porTrans(e) ? (esExt(e) ? dirExt(e.destino) : dirExt(e.origen)) : '', e.bultos, e.peso ? String(e.peso).replace('.', ',') : '', e.facturado ? 'Sí' : '']; });
+      .map(e => { const t = ultimo(e, 'transito'); return [factMes, e.unidad || '', e.pedido || '', e.expedicion || '', e.id, fmt(t.ts), textoAsig(e), t.seguimiento || '', donde(e.origen), donde(e.destino), porTrans(e) ? (esExt(e) ? dirExt(e.destino) : dirExt(e.origen)) : '', e.bultos, e.peso ? String(e.peso).replace('.', ',') : '', e.facturado ? 'Sí' : '']; });
     const csv = '\ufeff' + [cols, ...rows].map(r => r.map(v => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(';')).join('\r\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
     a.download = 'facturacion-' + factMes + '.csv'; a.click();
   };
   document.querySelectorAll('.f-mark').forEach(b => b.onclick = async () => {
     const u = b.dataset.u, arr = Object.values(grupos[u]).flat(), quitar = arr.every(e => e.facturado === factMes);
-    if(!quitar && arr.some(e => !e.pedido) && !confirm('Hay envíos de ' + u + ' sin nº de pedido. ¿Marcar igualmente?')) return;
+    if(!quitar && arr.some(e => !e.pedido) && !confirm('Hay envíos de ' + u + ' sin pedido o asunto. ¿Marcar igualmente?')) return;
     b.disabled = true; b.textContent = 'Guardando…';
     for(const e of arr){ try{ await Store.update(e.id, cur => { cur.facturado = quitar ? '' : factMes; return cur; }); }catch(_){} }
     toast(quitar ? 'Marca quitada' : u + ': marcado como facturado');
