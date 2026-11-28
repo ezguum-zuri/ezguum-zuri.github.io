@@ -741,6 +741,9 @@ function fallo(){ const f = LS.get('log_fallos', {}); f.n = (f.n || 0) + 1; if(f
 const acierto = () => LS.set('log_fallos', {});
 const esAlmacen = () => rol() !== 'trabajador';
 const esLogistica = () => rol() === 'admin' || (rol() === 'almacen' && miPuesto() === LOGI);
+/* Cada almacén o recepción ve solo lo que sale de él o tiene que llegarle; Logística y el administrador lo ven todo. */
+const esMio = e => enPuesto(e.origen, miPuesto()) || enPuesto(e.destino, miPuesto());
+const visibles = l => esLogistica() || rol() !== 'almacen' ? l : l.filter(esMio);
 const esAdmin = () => rol() === 'admin' || (rol() === 'almacen' && !hayPinAdmin());
 const miPuesto = () => (LS.get('log_rol', {}) || {}).puesto || '';
 const miNombre = () => rol() === 'almacen' ? ((LS.get('log_rol', {}) || {}).nombre || '') : '';
@@ -904,7 +907,7 @@ async function vInicio(){
     }));
     return;
   }
-  let todos; try{ todos = await Store.list(); }catch(err){ $('#rec').innerHTML = `<div class="card">Error al cargar: ${esc(err.message)}</div>`; return; }
+  let todos; try{ todos = visibles(await Store.list()); }catch(err){ $('#rec').innerHTML = `<div class="card">Error al cargar: ${esc(err.message)}</div>`; return; }
   const n = k => todos.filter(e => e.estado === k).length;
   const urg = todos.filter(e => e.prioridad === 'urgente' && e.estado !== 'entregado').length;
   $('#stats').innerHTML = [['solicitado','Por asignar',n('solicitado'),col('solicitado')],['asignado','Por preparar',n('asignado'),col('asignado')],['transito','En tránsito',n('transito'),col('transito')],['recibido','En destino',n('recibido'),col('recibido')],['entregado','Entregados',n('entregado'),col('entregado')],['urgentes','Urgentes',urg,'var(--urg)']]
@@ -1398,12 +1401,12 @@ async function vLista(){
   if(!filtroPend) filtro = { estado:'activos', q:'', desde:'', hasta:'' };   // al volver a Envíos, búsqueda en blanco
   filtroPend = false;
   $('#app').innerHTML = '<div class="empty">Cargando envíos…</div>';
-  let todos; try{ todos = await Store.list(); }catch(err){ $('#app').innerHTML = `<div class="card">Error al cargar: ${esc(err.message)}</div>`; return; }
+  let todos; try{ todos = visibles(await Store.list()); }catch(err){ $('#app').innerHTML = `<div class="card">Error al cargar: ${esc(err.message)}</div>`; return; }
   const cnt = k => k === 'valija' ? todos.filter(e => e.asig && e.asig.modo === 'valija' && e.estado !== 'entregado').length : k === 'fuera' ? todos.filter(e => porTrans(e) && e.estado !== 'entregado').length : k === 'todos' ? todos.length : k === 'activos' ? todos.filter(e => e.estado !== 'entregado').length : k === 'urgentes' ? todos.filter(e => e.prioridad === 'urgente' && e.estado !== 'entregado').length : todos.filter(e => e.estado === k).length;
   const chips = [['activos','En curso'],['urgentes','Urgentes'],['solicitado','Por asignar'],['asignado','Por preparar'],['transito','En tránsito'],['recibido','En destino'],['entregado','Entregados'],['valija','Valija'],['fuera','Fuera / recogidas'],['todos','Todos']];
   $('#app').innerHTML = `
     <div style="display:flex;align-items:center;gap:10px"><div class="h1" style="flex:1">Envíos</div><button class="btn ghost" id="rf" title="Actualizar" style="padding:10px">${icon('refresh')}</button></div>
-    <p class="sub">Busca un envío o filtra por estado.</p>
+    <p class="sub">${esLogistica() ? 'Todos los envíos.' : 'Los que salen de ' + esc(miPuesto()) + ' o tienen que llegar aquí.'} Busca o filtra por estado.</p>
     <div class="search">${icon('search')}<input id="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Código (ej. 5), persona, sede…" value="${esc(filtro.q)}"></div>
     <div class="chips">${chips.map(([k,l]) => `<button class="chip ${filtro.estado === k ? 'on' : ''}" data-k="${k}">${l}<i>${cnt(k)}</i></button>`).join('')}</div>
     <details class="more" style="margin-bottom:12px"><summary>Filtrar por fecha</summary>
